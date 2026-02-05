@@ -13,7 +13,7 @@ export function AthleteHelpSupport() {
   ];
 
   return (
-    <div className="min-h-full bg-gray-50 pb-6">
+    <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
         <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />

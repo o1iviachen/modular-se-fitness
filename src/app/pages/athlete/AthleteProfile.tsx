@@ -1,6 +1,10 @@
 import { useAuth } from '../../context/AuthContext';
-import { ChevronRight, Target, FileText, User, Mail, LogOut, Settings, Bell, HelpCircle } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { ProfileHeader } from '../../components/ui/profile-header';
+import { PageCard } from '../../components/ui/page-card';
+import { SectionHeader } from '../../components/ui/section-header';
+import { ListItemButton } from '../../components/ui/list-item-button';
 
 export function AthleteProfile() {
   const { user, logout } = useAuth();
@@ -13,99 +17,106 @@ export function AthleteProfile() {
     }
   };
 
+  const handleEditPhoto = () => {
+    alert('Profile photo editing would be implemented here');
+  };
+
+  const stats = [
+    { label: 'Completed', value: '24' },
+    { label: 'Day Streak', value: '5' },
+    { label: 'This Month', value: '8' }
+  ];
+
   return (
     <div className="min-h-full bg-gray-50 pb-6">
-      {/* Header */}
-      <div className="bg-black text-white px-6 py-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-20 h-20 bg-[#FFD000] rounded-full flex items-center justify-center text-black text-2xl">
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
+      <ProfileHeader 
+        firstName={user?.firstName}
+        lastName={user?.lastName}
+        email={user?.email}
+        onEditPhoto={handleEditPhoto}
+      />
+
+      {/* Stats */}
+      <div className="px-6 -mt-4 mb-6">
+        <PageCard>
+          <div className="grid grid-cols-3 gap-4">
+            {stats.map((stat, idx) => (
+              <div key={idx} className="text-center">
+                <div className="text-2xl mb-1">{stat.value}</div>
+                <div className="text-xs text-gray-500">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </PageCard>
+      </div>
+
+      {/* Personal Info */}
+      <div className="px-6 mb-6">
+        <SectionHeader>Personal Information</SectionHeader>
+        <PageCard className="space-y-3">
+          <div>
+            <div className="text-sm text-gray-600 mb-1">Email</div>
+            <div className="text-black">{user?.email}</div>
           </div>
           <div>
-            <h1 className="text-xl font-semibold">{user?.firstName} {user?.lastName}</h1>
-            <p className="text-gray-400 text-sm">{user?.email}</p>
+            <div className="text-sm text-gray-600 mb-1">Name</div>
+            <div className="text-black">{user?.firstName} {user?.lastName}</div>
           </div>
+          <div>
+            <div className="text-sm text-gray-600 mb-1">Role</div>
+            <div className="text-black">Athlete</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-600 mb-1">Member Since</div>
+            <div className="text-black">January 2026</div>
+          </div>
+        </PageCard>
+      </div>
+
+      {/* My Goals */}
+      <div className="px-6 mb-6">
+        <SectionHeader>My Goals</SectionHeader>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <ListItemButton onClick={() => navigate('/athlete/goals')} noBorder>
+            View Goals
+          </ListItemButton>
         </div>
       </div>
 
-      {/* Settings Options */}
-      <div className="px-6 mt-6">
+      {/* Documents */}
+      <div className="px-6 mb-6">
+        <SectionHeader>Documents</SectionHeader>
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => navigate('/athlete/edit-profile')}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFD000]/10 rounded-lg flex items-center justify-center">
-                <User className="w-5 h-5 text-[#FFD000]" />
-              </div>
-              <span className="text-black">Personal Information</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
+          <ListItemButton onClick={() => navigate('/athlete/documents')} noBorder>
+            View Documents
+          </ListItemButton>
+        </div>
+      </div>
 
-          <button
-            onClick={() => navigate('/athlete/goals')}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFD000]/10 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-[#FFD000]" />
-              </div>
-              <span className="text-black">My Goals</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
-
-          <button
-            onClick={() => navigate('/athlete/documents')}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFD000]/10 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-[#FFD000]" />
-              </div>
-              <span className="text-black">Documents</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
-
-          <button
-            onClick={() => navigate('/athlete/notification-settings')}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFD000]/10 rounded-lg flex items-center justify-center">
-                <Bell className="w-5 h-5 text-[#FFD000]" />
-              </div>
-              <span className="text-black">Notification Settings</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
-
-          <button
-            onClick={() => navigate('/athlete/help-support')}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFD000]/10 rounded-lg flex items-center justify-center">
-                <HelpCircle className="w-5 h-5 text-[#FFD000]" />
-              </div>
-              <span className="text-black">Help & Support</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
+      {/* Settings & Actions */}
+      <div className="px-6 mb-6">
+        <SectionHeader>Settings</SectionHeader>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <ListItemButton onClick={() => navigate('/athlete/edit-profile')}>
+            Edit Profile
+          </ListItemButton>
+          <ListItemButton onClick={() => navigate('/athlete/notification-settings')}>
+            Notification Settings
+          </ListItemButton>
+          <ListItemButton onClick={() => navigate('/athlete/help-support')} noBorder>
+            Help & Support
+          </ListItemButton>
         </div>
       </div>
 
       {/* Logout */}
-      <div className="px-6 mt-6">
+      <div className="px-6">
         <button
           onClick={handleLogout}
           className="w-full bg-red-50 text-red-600 rounded-xl p-5 shadow-sm flex items-center justify-center gap-3 hover:bg-red-100 transition-colors"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium">Log Out</span>
+          <span>Log Out</span>
         </button>
       </div>
     </div>

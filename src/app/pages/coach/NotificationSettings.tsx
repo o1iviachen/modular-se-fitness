@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 
 export function NotificationSettings() {
@@ -41,7 +41,7 @@ export function NotificationSettings() {
   );
 
   return (
-    <div className="min-h-full bg-gray-50 pb-6">
+    <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
         <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -126,19 +126,19 @@ export function NotificationSettings() {
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex gap-3 mt-6">
           <button
-            onClick={() => navigate(-1)}
-            className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
+            onClick={handleSave}
+            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
           >
-            Cancel
+            Save Changes
           </button>
           <button
-            onClick={handleSave}
-            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium flex items-center justify-center gap-2"
+            onClick={() => navigate(-1)}
+            className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
           >
-            <Save className="w-5 h-5" />
-            Save Changes
+            Cancel
           </button>
         </div>
       </div>

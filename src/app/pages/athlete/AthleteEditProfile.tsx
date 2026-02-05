@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 
@@ -30,7 +30,7 @@ export function AthleteEditProfile() {
   };
 
   return (
-    <div className="min-h-full bg-gray-50 pb-6">
+    <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
         <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
@@ -77,7 +77,6 @@ export function AthleteEditProfile() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
-                  placeholder="(555) 123-4567"
                   className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
                 />
               </div>
@@ -94,7 +93,6 @@ export function AthleteEditProfile() {
                     type="number"
                     value={formData.age}
                     onChange={(e) => handleChange('age', e.target.value)}
-                    placeholder="28"
                     className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
                   />
                 </div>
@@ -119,7 +117,6 @@ export function AthleteEditProfile() {
                     type="text"
                     value={formData.height}
                     onChange={(e) => handleChange('height', e.target.value)}
-                    placeholder="5'10&quot;"
                     className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
                   />
                 </div>
@@ -129,7 +126,6 @@ export function AthleteEditProfile() {
                     type="text"
                     value={formData.weight}
                     onChange={(e) => handleChange('weight', e.target.value)}
-                    placeholder="175 lbs"
                     className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
                   />
                 </div>
@@ -139,7 +135,6 @@ export function AthleteEditProfile() {
                 <textarea
                   value={formData.fitnessGoal}
                   onChange={(e) => handleChange('fitnessGoal', e.target.value)}
-                  placeholder="What are you working towards?"
                   className="w-full bg-gray-50 rounded-lg px-4 py-3 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[#FFD000] resize-none"
                 />
               </div>
@@ -147,18 +142,19 @@ export function AthleteEditProfile() {
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3 px-4 mt-6">
           <button
             onClick={handleSave}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
           >
             Save Changes
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
+          >
+            Cancel
           </button>
         </div>
       </div>

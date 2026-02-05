@@ -7,6 +7,7 @@ import gymBackground from 'figma:asset/22995820038f42fe600c7769e604277fa0c09953.
 export function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'athlete' | 'coach' | null>(null);
@@ -20,6 +21,11 @@ export function Signup() {
     
     if (!role) {
       setError('Please select a role');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -175,9 +181,19 @@ export function Signup() {
 
                   <input
                     type="password"
-                    placeholder="Password (min 6 characters)"
+                    placeholder="Password (>6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="w-full p-3 bg-white rounded-lg text-black placeholder-gray-500"
+                    required
+                    minLength={6}
+                  />
+
+                  <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full p-3 bg-white rounded-lg text-black placeholder-gray-500"
                     required
                     minLength={6}

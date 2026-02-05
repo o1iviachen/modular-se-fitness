@@ -1,7 +1,7 @@
 import { useAuth } from '../../context/AuthContext';
-import { ChevronRight, Calendar, Check, X } from 'lucide-react';
+import { ChevronRight, Calendar, Check, X, ChevronLeft, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { usePageState } from '../../hooks/usePageState';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 
 // Mock workout data
@@ -51,9 +51,14 @@ const allWorkouts = [
     date: 'Feb 4, 2026',
     day: 'Today',
     dateObj: new Date('2026-02-04'),
-    title: 'Rest day',
+    title: 'Upper Body Strength',
     completed: false,
-    exercises: []
+    exercises: [
+      { name: 'Bench Press', sets: '4x8' },
+      { name: 'Barbell Rows', sets: '4x8' },
+      { name: 'Overhead Press', sets: '3x10' },
+      { name: 'Pull-ups', sets: '3x8' }
+    ]
   },
   // Future workouts
   {
@@ -128,20 +133,60 @@ const isToday = (date: Date) => {
 export function AthleteHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [activeTab, setActiveTab] = usePageState<'upcoming' | 'past'>('athlete-home-tab', 'upcoming');
+  const [selectedMonthString, setSelectedMonthString] = usePageState('athlete-home-month', '2026-02-04');
+  
+  // Convert string back to Date
+  const selectedMonth = new Date(selectedMonthString);
+  const setSelectedMonth = (date: Date) => setSelectedMonthString(date.toISOString().split('T')[0]);
+
+  // Current month for comparison
+  const currentMonth = new Date('2026-02-04');
+
+  // Helper functions for month navigation
+  const getMonthName = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const goToPreviousMonth = () => {
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+    setSelectedMonth(newMonth);
+  };
+
+  const goToNextMonth = () => {
+    const newMonth = new Date(selectedMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+    // Don't go beyond current month
+    if (newMonth <= currentMonth) {
+      setSelectedMonth(newMonth);
+    }
+  };
+
+  const isCurrentMonth = () => {
+    return selectedMonth.getMonth() === currentMonth.getMonth() && 
+           selectedMonth.getFullYear() === currentMonth.getFullYear();
+  };
 
   // Filter workouts based on active tab
   const today = new Date('2026-02-04');
   const todayWorkout = allWorkouts.find(w => isToday(w.dateObj));
+  
+  // Filter workouts by selected month (only for Past tab)
+  const workoutsInSelectedMonth = allWorkouts.filter(w => {
+    return w.dateObj.getMonth() === selectedMonth.getMonth() && 
+           w.dateObj.getFullYear() === selectedMonth.getFullYear();
+  });
+
   const upcomingWorkouts = allWorkouts.filter(w => w.dateObj > today);
-  const pastWorkouts = allWorkouts.filter(w => w.dateObj < today);
+  const pastWorkouts = workoutsInSelectedMonth.filter(w => w.dateObj < today);
 
   const displayWorkouts = activeTab === 'upcoming' ? upcomingWorkouts : pastWorkouts;
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
-      <div className="bg-black text-white px-6 py-8">
+      <div className={`bg-black text-white px-6 py-8 ${activeTab === 'upcoming' ? 'pb-12' : 'pb-6'}`}>
         <div className="flex items-center gap-3 mb-6">
           <img src={logo} alt="SE Fitness" className="h-8 w-auto" />
           <h1 className="text-xl font-semibold">{getGreeting()}, {user?.firstName}</h1>
@@ -172,113 +217,96 @@ export function AthleteHome() {
         </div>
       </div>
 
+      {/* Month Navigation - Only for Past Workouts */}
+      {activeTab === 'past' && (
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <button 
+            onClick={goToPreviousMonth}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          
+          <h2 className="text-lg font-medium text-gray-900">
+            {getMonthName(selectedMonth)}
+          </h2>
+          
+          <button 
+            onClick={goToNextMonth}
+            disabled={isCurrentMonth()}
+            className={`p-2 rounded-lg transition-colors ${
+              isCurrentMonth() 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'hover:bg-gray-100 text-gray-700'
+            }`}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       {activeTab === 'upcoming' ? (
         <>
           {/* Today's Workout Card */}
           {todayWorkout && (
-            <div className="px-6 -mt-4">
-              <div className="bg-[#FFD000] rounded-xl p-5 shadow-md">
+            <div className="px-6 -mt-8">
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                {/* Date Header */}
+                <button
+                  onClick={() => navigate(`/athlete/workout/${todayWorkout.id}`)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-[#FFD000] border-b border-gray-200 hover:bg-[#FFD000]/90 transition-colors"
+                >
+                  <div className="text-sm text-black">
+                    {todayWorkout.date} <span className="text-xs">·</span> {todayWorkout.day}
+                  </div>
+                  <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                </button>
+
+                {/* Workout Content */}
                 {todayWorkout.title === 'Rest day' ? (
-                  <>
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-black/60 text-sm mb-1">Today's Workout</div>
-                          <h2 className="text-black text-lg">Rest Day</h2>
-                        </div>
-                        <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-2xl">
-                          😌
-                        </div>
-                      </div>
-                      <p className="text-black/70 text-sm">
-                        Take it easy today. Recovery is just as important as training.
-                      </p>
-                    </div>
-                  </>
+                  <div className="p-4 text-gray-600">Rest day</div>
                 ) : (
-                  <>
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-black/60 text-sm mb-1">Today's Workout</div>
-                          <h2 className="text-black text-lg">{todayWorkout.title}</h2>
+                  <div className="divide-y divide-gray-100">
+                    {todayWorkout.exercises.map((exercise, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => navigate(`/athlete/workout/${todayWorkout.id}`)}
+                        className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
+                          {String.fromCharCode(65 + idx)}
                         </div>
-                        <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-[#FFD000]">
-                          💪
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mb-4">
-                        <span className="bg-black/10 text-black text-sm px-3 py-1 rounded-full">
-                          {todayWorkout.exercises.length} exercises
-                        </span>
-                        <span className="bg-black/10 text-black text-sm px-3 py-1 rounded-full">
-                          45 min
-                        </span>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => navigate(`/athlete/workout/${todayWorkout.id}`)}
-                      className="w-full bg-black text-white py-3 rounded-lg hover:bg-black/90 transition-colors"
-                    >
-                      Start Workout
-                    </button>
-                  </>
+                        <div className="text-gray-700">{exercise.name}</div>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
           )}
 
           {/* Upcoming Workouts */}
-          <div className="px-6 mt-8">
-            <h3 className="text-lg mb-4">Upcoming Workouts</h3>
+          <div className="px-6 mt-6">
+            <h3 className="text-lg font-semibold mb-4">Upcoming Workouts</h3>
             <div className="space-y-3">
               {displayWorkouts.map((workout) => (
-                <button
-                  key={workout.id}
-                  onClick={() => navigate(`/athlete/workout/${workout.id}`)}
-                  className="w-full bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-[#FFD000] transition-colors text-left"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        {workout.date} • {workout.day}
-                      </div>
-                      <div className="text-black font-medium">{workout.title}</div>
+                <div key={workout.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  {/* Date Header */}
+                  <button
+                    onClick={() => navigate(`/athlete/workout/${workout.id}`)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 border-b border-gray-200 hover:bg-gray-200 transition-colors"
+                  >
+                    <div className="text-sm text-gray-700">
+                      {workout.date} <span className="text-xs">·</span> {workout.day}
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  </div>
-                  {workout.title !== 'Rest day' && (
-                    <div className="text-sm text-gray-600">
-                      {workout.exercises.length} exercises
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Past Workouts */}
-          <div className="px-6 mt-6 space-y-4">
-            {displayWorkouts.map((workout) => (
-              <div key={workout.id}>
-                {/* Date Header with Completion Icon */}
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <div className="text-sm text-gray-500">{workout.date}</div>
-                  {workout.completed ? (
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
                       <Check className="w-4 h-4 text-white" />
                     </div>
-                  ) : (
-                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                      <X className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </div>
+                  </button>
 
-                {/* Workout Card with Different Color */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  {/* Workout Content */}
                   {workout.title === 'Rest day' ? (
                     <div className="p-4 text-gray-600">Rest day</div>
                   ) : (
@@ -298,6 +326,54 @@ export function AthleteHome() {
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Past Workouts */}
+          <div className="px-6 mt-6 space-y-4">
+            {displayWorkouts.map((workout) => (
+              <div key={workout.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {/* Date Header with Completion Icon */}
+                <button
+                  onClick={() => navigate(`/athlete/workout/${workout.id}`)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 border-b border-gray-200 hover:bg-gray-200 transition-colors"
+                >
+                  <div className="text-sm text-gray-700">
+                    {workout.date} <span className="text-xs">·</span> {workout.day}
+                  </div>
+                  {workout.completed ? (
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                      <X className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </button>
+
+                {/* Workout Content */}
+                {workout.title === 'Rest day' ? (
+                  <div className="p-4 text-gray-600">Rest day</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {workout.exercises.map((exercise, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => navigate(`/athlete/workout/${workout.id}`)}
+                        className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
+                          {String.fromCharCode(65 + idx)}
+                        </div>
+                        <div className="text-gray-700">{exercise.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

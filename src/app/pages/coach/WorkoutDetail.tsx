@@ -190,18 +190,19 @@ export function WorkoutDetail() {
           />
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-6">
           <button
             onClick={handleSave}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
           >
             Save Changes
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
+          >
+            Cancel
           </button>
         </div>
       </div>

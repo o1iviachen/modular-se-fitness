@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Copy, Check, Mail, LogOut, Share2, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { Copy, Check, LogOut, Share2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { ProfileHeader } from '../../components/ui/profile-header';
+import { PageCard } from '../../components/ui/page-card';
+import { SectionHeader } from '../../components/ui/section-header';
+import { ListItemButton } from '../../components/ui/list-item-button';
 
 export function CoachProfile() {
   const { user, logout } = useAuth();
   const [codeCopied, setCodeCopied] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shouldHighlight = searchParams.get('highlight') === 'code';
 
   const handleCopyCode = () => {
     if (user?.coachCode) {
@@ -32,16 +38,8 @@ export function CoachProfile() {
     }
   };
 
-  const handleEditProfile = () => {
-    navigate('/coach/edit-profile');
-  };
-
-  const handleNotificationSettings = () => {
-    navigate('/coach/notification-settings');
-  };
-
-  const handleHelpSupport = () => {
-    navigate('/coach/help-support');
+  const handleEditPhoto = () => {
+    alert('Profile photo editing would be implemented here');
   };
 
   const stats = [
@@ -52,22 +50,16 @@ export function CoachProfile() {
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
-      {/* Header */}
-      <div className="bg-black text-white px-6 py-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-20 h-20 bg-[#FFD000] rounded-full flex items-center justify-center text-black text-2xl">
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold">Coach {user?.firstName} {user?.lastName}</h1>
-            <p className="text-gray-400 text-sm">{user?.email}</p>
-          </div>
-        </div>
-      </div>
+      <ProfileHeader 
+        firstName={user?.firstName}
+        lastName={user?.lastName}
+        email={user?.email}
+        onEditPhoto={handleEditPhoto}
+      />
 
       {/* Stats */}
       <div className="px-6 -mt-4 mb-6">
-        <div className="bg-white rounded-xl p-5 shadow-sm">
+        <PageCard>
           <div className="grid grid-cols-3 gap-4">
             {stats.map((stat, idx) => (
               <div key={idx} className="text-center">
@@ -76,12 +68,12 @@ export function CoachProfile() {
               </div>
             ))}
           </div>
-        </div>
+        </PageCard>
       </div>
 
       {/* Coach Code */}
       <div className="px-6 mb-6">
-        <div className="bg-gradient-to-br from-[#FFD000] to-[#FFE54D] rounded-xl p-4 shadow-lg">
+        <div className={`bg-gradient-to-br from-[#FFD000] to-[#FFE54D] rounded-xl p-4 shadow-lg transition-all duration-500 ${shouldHighlight ? 'ring-4 ring-[#FFD000] ring-offset-4 ring-offset-gray-50 scale-105' : ''}`}>
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-black mb-1">Your Coach Code</h3>
@@ -89,7 +81,7 @@ export function CoachProfile() {
             </div>
           </div>
           
-          <div className="bg-black/10 rounded-lg p-2.5 mb-3 text-center">
+          <div className={`bg-black/10 rounded-lg p-2.5 mb-3 text-center transition-all duration-500 ${shouldHighlight ? 'bg-black/20' : ''}`}>
             <div className="text-xl text-black tracking-wider font-medium">
               {user?.coachCode}
             </div>
@@ -125,8 +117,8 @@ export function CoachProfile() {
 
       {/* Personal Info */}
       <div className="px-6 mb-6">
-        <h3 className="text-lg mb-3">Personal Information</h3>
-        <div className="bg-white rounded-xl p-5 shadow-sm space-y-3">
+        <SectionHeader>Personal Information</SectionHeader>
+        <PageCard className="space-y-3">
           <div>
             <div className="text-sm text-gray-600 mb-1">Email</div>
             <div className="text-black">{user?.email}</div>
@@ -143,34 +135,22 @@ export function CoachProfile() {
             <div className="text-sm text-gray-600 mb-1">Member Since</div>
             <div className="text-black">January 2026</div>
           </div>
-        </div>
+        </PageCard>
       </div>
 
       {/* Settings & Actions */}
       <div className="px-6 mb-6">
-        <h3 className="text-lg mb-3">Settings</h3>
+        <SectionHeader>Settings</SectionHeader>
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={handleEditProfile}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <span className="text-black">Edit Profile</span>
-            <span className="text-gray-400">›</span>
-          </button>
-          <button
-            onClick={handleNotificationSettings}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-          >
-            <span className="text-black">Notification Settings</span>
-            <span className="text-gray-400">›</span>
-          </button>
-          <button
-            onClick={handleHelpSupport}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-black">Help & Support</span>
-            <span className="text-gray-400">›</span>
-          </button>
+          <ListItemButton onClick={() => navigate('/coach/edit-profile')}>
+            Edit Profile
+          </ListItemButton>
+          <ListItemButton onClick={() => navigate('/coach/notification-settings')}>
+            Notification Settings
+          </ListItemButton>
+          <ListItemButton onClick={() => navigate('/coach/help-support')} noBorder>
+            Help & Support
+          </ListItemButton>
         </div>
       </div>
 

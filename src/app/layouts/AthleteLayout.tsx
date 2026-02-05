@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Home, MessageCircle, User } from 'lucide-react';
+import { ScrollRestoration } from '../components/ScrollRestoration';
 
 export function AthleteLayout() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export function AthleteLayout() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
+      <ScrollRestoration />
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <Outlet />

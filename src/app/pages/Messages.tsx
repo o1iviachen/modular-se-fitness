@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { Send, ArrowLeft } from 'lucide-react';
@@ -61,6 +61,7 @@ export function Messages() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [message, setMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const conversation = chatId ? mockConversationsData[chatId as keyof typeof mockConversationsData] : null;
   const [messages, setMessages] = useState(conversation?.messages || []);
@@ -86,6 +87,10 @@ export function Messages() {
       navigate('/athlete/messages');
     }
   };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <>
@@ -145,6 +150,7 @@ export function Messages() {
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}

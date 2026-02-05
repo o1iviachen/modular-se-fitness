@@ -21,9 +21,7 @@ export function ConfirmModal({
   onCancel,
   variant = 'default'
 }: ConfirmModalProps) {
-  if (!isOpen) return null;
-
-  return (
+  return isOpen ? (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md">
         <div className="p-6">
@@ -58,5 +56,5 @@ export function ConfirmModal({
         </div>
       </div>
     </div>
-  );
+  ) : null;
 }
