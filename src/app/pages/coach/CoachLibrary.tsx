@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { exerciseLibrary } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
+import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
 
-// Mock exercise library data
 const exerciseSources = [
   { id: 'all', name: 'All Exercises' },
   { id: 'stretch-affect', name: 'Stretch Affect' },
@@ -18,6 +18,7 @@ export function CoachLibrary() {
   const [selectedSource, setSelectedSource] = useState('all');
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const filteredExercises = exerciseLibrary.filter(exercise => {
     const matchesSearch = exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -25,24 +26,6 @@ export function CoachLibrary() {
     const matchesSource = selectedSource === 'all' || exercise.source === selectedSource;
     return matchesSearch && matchesSource;
   });
-
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case 'stretch-affect':
-        return 'bg-purple-100 text-purple-700';
-      case 'central-athlete':
-        return 'bg-blue-100 text-blue-700';
-      case 'custom':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getSourceName = (source: string) => {
-    const sourceObj = exerciseSources.find(s => s.id === source);
-    return sourceObj?.name || source;
-  };
 
   const openModal = (exercise) => {
     setSelectedExercise(exercise);
@@ -53,8 +36,6 @@ export function CoachLibrary() {
     setSelectedExercise(null);
     setIsModalOpen(false);
   };
-
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">

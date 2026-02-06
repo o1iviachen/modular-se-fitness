@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { exerciseLibrary } from '../data/exerciseLibrary';
+import { getSourceBadgeColor, getSourceName } from '../utils/exerciseHelpers';
 
 interface ExerciseSearchInputProps {
   value: string;
@@ -14,14 +15,10 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter exercises based on search query
   const filteredExercises = exerciseLibrary.filter(exercise =>
     exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const hasResults = filteredExercises.length > 0;
-
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -52,40 +49,10 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
     inputRef.current?.blur();
   };
 
-  const handleFocus = () => {
-    setIsOpen(true);
-  };
-
   const handleClear = () => {
     setSearchQuery('');
     onChange('');
     inputRef.current?.focus();
-  };
-
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case 'stretch-affect':
-        return 'bg-purple-100 text-purple-700';
-      case 'central-athlete':
-        return 'bg-blue-100 text-blue-700';
-      case 'custom':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getSourceName = (source: string) => {
-    switch (source) {
-      case 'stretch-affect':
-        return 'Stretch Affect';
-      case 'central-athlete':
-        return 'Central Athlete';
-      case 'custom':
-        return 'Custom';
-      default:
-        return source;
-    }
   };
 
   return (
@@ -97,7 +64,6 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
           type="text"
           value={searchQuery}
           onChange={handleInputChange}
-          onFocus={handleFocus}
           className="w-full pl-10 pr-8 py-2 bg-transparent font-medium focus:outline-none"
           placeholder="Search exercise library..."
         />
@@ -117,7 +83,7 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
           ref={dropdownRef}
           className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto z-50"
         >
-          {hasResults ? (
+          {filteredExercises.length > 0 ? (
             <div className="py-2">
               {filteredExercises.slice(0, 8).map((exercise) => (
                 <button

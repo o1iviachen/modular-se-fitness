@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Play } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { exerciseLibrary } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
 import { useState } from 'react';
+import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
 
 export function ExerciseDetail() {
   const { exerciseId } = useParams();
@@ -19,32 +20,6 @@ export function ExerciseDetail() {
       </div>
     );
   }
-
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case 'stretch-affect':
-        return 'bg-purple-100 text-purple-700';
-      case 'central-athlete':
-        return 'bg-blue-100 text-blue-700';
-      case 'custom':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getSourceName = (source: string) => {
-    switch (source) {
-      case 'stretch-affect':
-        return 'Stretch Affect';
-      case 'central-athlete':
-        return 'Central Athlete';
-      case 'custom':
-        return 'Custom Exercise';
-      default:
-        return source;
-    }
-  };
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
@@ -104,10 +79,6 @@ export function ExerciseDetail() {
             <div className="flex justify-between">
               <span className="text-gray-600">Equipment</span>
               <span className="font-medium">{exercise.equipment}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Duration</span>
-              <span className="font-medium">{exercise.duration}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Source</span>

@@ -2,26 +2,20 @@ import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { getAthlete, getAthleteWorkouts } from '../../data/mockData';
-import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth } from '../utils/helpers';
+import { getAthlete, getAthleteWorkouts, isAthleteArchived } from '../../data/mockData';
+import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth } from '../../utils/helpers';
 import { WorkoutCard } from '../../components/WorkoutCard';
 
 export function AthleteWorkouts() {
   const { athleteId } = useParams();
   const navigate = useNavigate();
   const athlete = athleteId ? getAthlete(athleteId) : null;
-  const allWorkouts = athleteId ? getAthleteWorkouts(athleteId) : [];
+  const initialWorkouts = athleteId ? getAthleteWorkouts(athleteId) : [];
+  const [allWorkouts, setAllWorkouts] = useState(initialWorkouts);
+  const isArchived = athleteId ? isAthleteArchived(athleteId) : false;
   
   const [selectedMonth, setSelectedMonth] = useState(new Date('2026-02-04'));
   const currentMonth = new Date('2026-02-04');
-
-  if (!athlete) {
-    return (
-      <div className="min-h-full bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Athlete not found</p>
-      </div>
-    );
-  }
 
   const workoutsInMonth = filterWorkoutsByMonth(allWorkouts, selectedMonth);
   const isCurrentMonth = isSameMonth(selectedMonth, currentMonth);
@@ -34,16 +28,19 @@ export function AthleteWorkouts() {
   };
 
   const handleWorkoutClick = (workout: any) => {
-    if (workout.workout && workout.workout !== 'Rest day') {
-      navigate(`/coach/workout/${workout.date}`, {
-        state: {
-          workoutName: workout.workout,
-          workoutDate: workout.date,
-          workoutDay: workout.day,
-          athleteId: athleteId
-        }
-      });
+    // Don't navigate if it's a rest day or athlete is archived
+    if (workout.workout === 'Rest day' || isArchived) {
+      return;
     }
+    
+    navigate(`/coach/workout/${workout.date}`, {
+      state: {
+        workoutName: workout.workout || 'New Workout',
+        workoutDate: workout.date,
+        workoutDay: workout.day,
+        athleteId: athleteId
+      }
+    });
   };
 
   const handleAddWorkout = (workout: any, e: React.MouseEvent) => {
@@ -60,8 +57,40 @@ export function AthleteWorkouts() {
 
   const handleSetRestDay = (workout: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    alert(`Rest day set for ${workout.date}`);
+    setAllWorkouts(prevWorkouts => 
+      prevWorkouts.map(w => {
+        if (w.date !== workout.date) return w;
+        
+        // If it's currently a rest day override, restore the original workout
+        if (w.isRestDayOverride) {
+          return {
+            ...w,
+            workout: w.originalWorkout || null,
+            exercises: w.originalExercises || [],
+            isRestDayOverride: false,
+          };
+        }
+        
+        // Otherwise, set it as a rest day and store the original
+        return {
+          ...w,
+          originalWorkout: w.workout,
+          originalExercises: w.exercises,
+          workout: 'Rest day',
+          exercises: [],
+          isRestDayOverride: true,
+        };
+      })
+    );
   };
+
+  if (!athlete) {
+    return (
+      <div className="min-h-full bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Athlete not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
@@ -115,10 +144,10 @@ export function AthleteWorkouts() {
               workout={workout.workout}
               completed={workout.completed}
               exercises={workout.exercises}
-              onClick={() => handleWorkoutClick(workout)}
-              onAddWorkout={(e) => handleAddWorkout(workout, e)}
-              onSetRestDay={(e) => handleSetRestDay(workout, e)}
-              showActions={true}
+              onClick={!isArchived ? () => handleWorkoutClick(workout) : undefined}
+              onAddWorkout={!isArchived ? (e) => handleAddWorkout(workout, e) : undefined}
+              onSetRestDay={!isArchived ? (e) => handleSetRestDay(workout, e) : undefined}
+              showActions={!isArchived}
             />
           ))
         ) : (

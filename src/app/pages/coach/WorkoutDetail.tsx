@@ -23,12 +23,6 @@ export function WorkoutDetail() {
   const { workoutId } = useParams();
   const { workoutName, workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null } = location.state || {};
 
-  // If no workout name provided, redirect back
-  if (!workoutName) {
-    navigate(-1);
-    return null;
-  }
-
   const workoutKey = `${athleteId}-${workoutId}`;
 
   const [exercises, setExercises] = useState<Exercise[]>(() => {
@@ -58,6 +52,12 @@ export function WorkoutDetail() {
   });
 
   const [workoutNotes, setWorkoutNotes] = useState('Remember to warm up with 10 min cardio and dynamic stretching');
+
+  // If no workout name provided, redirect back
+  if (!workoutName) {
+    navigate(-1);
+    return null;
+  }
 
   const updateStorage = (newExercises: Exercise[]) => {
     workoutStorage[workoutKey] = newExercises;
@@ -95,8 +95,7 @@ export function WorkoutDetail() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
-        {workoutDay && workoutDate && <div className="text-sm text-gray-400 mb-1">{workoutDay} • {workoutDate}</div>}
-        <h1 className="text-xl font-semibold">{workoutName}</h1>
+        {workoutDay && workoutDate && <h1 className="text-lg font-semibold">{workoutDay} <span className="text-sm">·</span> {workoutDate}</h1>}
       </div>
 
       <div className="px-6 py-6">

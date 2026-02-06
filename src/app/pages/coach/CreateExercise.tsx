@@ -9,7 +9,6 @@ export function CreateExercise() {
     name: '',
     category: '',
     equipment: '',
-    duration: '',
     description: '',
     videoUrl: ''
   });
@@ -27,7 +26,6 @@ export function CreateExercise() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would save to a database
     console.log('Creating exercise:', formData);
     alert('Exercise created successfully!');
     navigate('/coach/library');
@@ -89,8 +87,8 @@ export function CreateExercise() {
           </div>
         </div>
 
-        {/* Equipment & Duration */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
+        {/* Equipment */}
+        <div className="mb-6">
           <div className="bg-white rounded-xl p-5 shadow-sm">
             <label className="block text-sm font-medium mb-2">Equipment</label>
             <input
@@ -99,16 +97,6 @@ export function CreateExercise() {
               onChange={(e) => handleChange('equipment', e.target.value)}
               className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
               placeholder="e.g., Dumbbells"
-            />
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm">
-            <label className="block text-sm font-medium mb-2">Duration</label>
-            <input
-              type="text"
-              value={formData.duration}
-              onChange={(e) => handleChange('duration', e.target.value)}
-              className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-              placeholder="e.g., Varies"
             />
           </div>
         </div>

@@ -62,6 +62,10 @@ export const router = createBrowserRouter([
     element: <AthleteLayout />,
     children: [
       {
+        index: true,
+        element: <Navigate to="/athlete/home" replace />
+      },
+      {
         path: 'home',
         element: <AthleteHome />
       },
@@ -123,6 +127,10 @@ export const router = createBrowserRouter([
     path: '/coach',
     element: <CoachLayout />,
     children: [
+      {
+        index: true,
+        element: <Navigate to="/coach/home" replace />
+      },
       {
         path: 'home',
         element: <CoachHome />

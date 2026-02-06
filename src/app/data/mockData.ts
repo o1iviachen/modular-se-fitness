@@ -1,5 +1,6 @@
-// Centralized mock data for the entire application
+import { getCurrentWeekDates } from '../utils/helpers';
 
+// Type definitions
 export interface Athlete {
   id: number;
   name: string;
@@ -28,6 +29,9 @@ export interface ScheduledWorkout {
   workout: string | null;
   completed: boolean;
   exercises: WorkoutExercise[];
+  originalWorkout?: string | null;  // Store the original workout when toggled to rest day
+  originalExercises?: WorkoutExercise[];  // Store the original exercises
+  isRestDayOverride?: boolean;  // Track if this is a manual rest day override
 }
 
 export interface Goal {
@@ -45,6 +49,13 @@ export interface Document {
   type: string;
   uploadedDate: string;
   size: string;
+}
+
+export interface Message {
+  id: number;
+  sender: 'Athlete' | 'Coach';
+  content: string;
+  timestamp: Date;
 }
 
 // Athletes data
@@ -158,118 +169,141 @@ const createWorkout = (date: string, day: string, workout: string | null, comple
 // Athlete workouts schedules
 export const athleteWorkouts: Record<string, ScheduledWorkout[]> = {
   '1': [
-    createWorkout('January 27, 2026', 'Mon', 'Upper Body Power', true, [
+    createWorkout('January 27, 2026', 'Monday', 'Upper Body Power', true, [
       { name: 'Bench Press', sets: '5x5' },
       { name: 'Overhead Press', sets: '4x8' }
     ]),
-    createWorkout('January 28, 2026', 'Tue', 'Lower Body Strength', true, [
+    createWorkout('January 28, 2026', 'Tuesday', 'Lower Body Strength', true, [
       { name: 'Squats', sets: '4x8' },
       { name: 'Leg Press', sets: '3x12' }
     ]),
-    createWorkout('January 29, 2026', 'Wed', null, false, []),
-    createWorkout('January 30, 2026', 'Thu', 'Core Training', false, [
+    createWorkout('January 29, 2026', 'Wednesday', null, false, []),
+    createWorkout('January 30, 2026', 'Thursday', 'Core Training', false, [
       { name: 'Planks', sets: '3x60s' }
     ]),
-    createWorkout('January 31, 2026', 'Fri', 'Cardio HIIT', true, [
+    createWorkout('January 31, 2026', 'Friday', 'Cardio HIIT', true, [
       { name: 'Burpees', sets: '3x15' }
     ]),
-    createWorkout('February 1, 2026', 'Mon', 'Upper Body Strength', true, [
+    createWorkout('February 1, 2026', 'Monday', 'Upper Body Strength', true, [
       { name: 'Bench Press', sets: '4x8' },
       { name: 'Barbell Rows', sets: '4x8' },
       { name: 'Overhead Press', sets: '3x10' }
     ]),
-    createWorkout('February 2, 2026', 'Tue', 'Lower Body Power', true, [
+    createWorkout('February 2, 2026', 'Tuesday', 'Lower Body Power', true, [
       { name: 'Back Squats', sets: '5x5' },
       { name: 'Romanian Deadlifts', sets: '3x10' }
     ]),
-    createWorkout('February 3, 2026', 'Wed', 'Core & Conditioning', true, [
+    createWorkout('February 3, 2026', 'Wednesday', 'Core & Conditioning', true, [
       { name: 'Planks', sets: '3x60s' },
       { name: 'Russian Twists', sets: '3x20' }
     ]),
-    createWorkout('February 4, 2026', 'Thu', 'Active Recovery', true, [
+    createWorkout('February 4, 2026', 'Thursday', 'Active Recovery', true, [
       { name: 'Light Yoga', sets: '30 min' }
     ]),
-    createWorkout('February 5, 2026', 'Fri', null, false, []),
-    createWorkout('February 6, 2026', 'Sat', 'Full Body HIIT', false, [
+    createWorkout('February 5, 2026', 'Friday', 'Upper Body Hypertrophy', false, [
+      { name: 'Incline Bench Press', sets: '4x10' },
+      { name: 'Cable Flies', sets: '3x12' },
+      { name: 'Dumbbell Rows', sets: '4x10' }
+    ]),
+    createWorkout('February 6, 2026', 'Saturday', 'Full Body HIIT', false, [
       { name: 'Burpees', sets: '3x15' },
       { name: 'Jump Squats', sets: '3x12' }
     ]),
-    createWorkout('February 7, 2026', 'Sun', null, false, []),
-    createWorkout('February 8, 2026', 'Mon', 'Upper Body Hypertrophy', false, [
+    createWorkout('February 7, 2026', 'Sunday', null, false, []),
+    createWorkout('February 8, 2026', 'Monday', 'Upper Body Hypertrophy', false, [
       { name: 'Incline Bench', sets: '4x10' }
     ]),
-    createWorkout('February 9, 2026', 'Tue', 'Lower Body Strength', false, [
+    createWorkout('February 9, 2026', 'Tuesday', 'Lower Body Strength', false, [
       { name: 'Squats', sets: '4x8' }
     ]),
-    createWorkout('February 10, 2026', 'Wed', 'Rest day', false, []),
+    createWorkout('February 10, 2026', 'Wednesday', 'Rest day', false, []),
   ],
   '2': [
-    createWorkout('January 27, 2026', 'Mon', 'Olympic Lifting', true, [
+    createWorkout('January 27, 2026', 'Monday', 'Olympic Lifting', true, [
       { name: 'Clean & Jerk', sets: '5x3' }
     ]),
-    createWorkout('January 28, 2026', 'Tue', null, false, []),
-    createWorkout('January 29, 2026', 'Wed', 'Upper Body Strength', true, [
+    createWorkout('January 28, 2026', 'Tuesday', null, false, []),
+    createWorkout('January 29, 2026', 'Wednesday', 'Upper Body Strength', true, [
       { name: 'Bench Press', sets: '4x8' }
     ]),
-    createWorkout('January 30, 2026', 'Thu', 'Lower Body Power', false, [
+    createWorkout('January 30, 2026', 'Thursday', 'Lower Body Power', false, [
       { name: 'Power Clean', sets: '5x3' }
     ]),
-    createWorkout('January 31, 2026', 'Fri', 'Core Training', true, [
+    createWorkout('January 31, 2026', 'Friday', 'Core Training', true, [
       { name: 'Planks', sets: '3x60s' }
     ]),
-    createWorkout('February 1, 2026', 'Mon', 'Olympic Lifting', true, [
+    createWorkout('February 1, 2026', 'Monday', 'Olympic Lifting', true, [
       { name: 'Clean & Jerk', sets: '5x3' }
     ]),
-    createWorkout('February 2, 2026', 'Tue', null, false, []),
-    createWorkout('February 3, 2026', 'Wed', 'Upper Body Strength', true, [
+    createWorkout('February 2, 2026', 'Tuesday', null, false, []),
+    createWorkout('February 3, 2026', 'Wednesday', 'Upper Body Strength', true, [
       { name: 'Bench Press', sets: '4x8' }
     ]),
-    createWorkout('February 4, 2026', 'Thu', null, false, []),
-    createWorkout('February 5, 2026', 'Fri', 'Lower Body Strength', false, [
+    createWorkout('February 4, 2026', 'Thursday', null, false, []),
+    createWorkout('February 5, 2026', 'Friday', 'Lower Body Strength', false, [
       { name: 'Squats', sets: '4x8' }
     ]),
-    createWorkout('February 6, 2026', 'Sat', 'Core & Cardio', false, [
+    createWorkout('February 6, 2026', 'Saturday', 'Core & Cardio', false, [
       { name: 'Planks', sets: '3x60s' }
     ]),
-    createWorkout('February 7, 2026', 'Sun', null, false, []),
+    createWorkout('February 7, 2026', 'Sunday', null, false, []),
   ],
   '3': [
-    createWorkout('February 1, 2026', 'Mon', 'Heavy Squats', true, [
+    createWorkout('February 1, 2026', 'Monday', 'Heavy Squats', true, [
       { name: 'Back Squats', sets: '5x5' }
     ]),
-    createWorkout('February 2, 2026', 'Tue', 'Bench Press Day', true, [
+    createWorkout('February 2, 2026', 'Tuesday', 'Bench Press Day', true, [
       { name: 'Bench Press', sets: '5x5' }
     ]),
-    createWorkout('February 3, 2026', 'Wed', 'Deadlift Training', true, [
+    createWorkout('February 3, 2026', 'Wednesday', 'Deadlift Training', true, [
       { name: 'Deadlifts', sets: '5x3' }
     ]),
-    createWorkout('February 4, 2026', 'Thu', 'Accessory Work', true, [
+    createWorkout('February 4, 2026', 'Thursday', 'Accessory Work', true, [
       { name: 'Face Pulls', sets: '3x15' }
     ]),
-    createWorkout('February 5, 2026', 'Fri', 'Olympic Lifts', false, [
+    createWorkout('February 5, 2026', 'Friday', 'Olympic Lifts', false, [
       { name: 'Power Clean', sets: '5x3' }
     ]),
-    createWorkout('February 6, 2026', 'Sat', 'Conditioning', false, [
+    createWorkout('February 6, 2026', 'Saturday', 'Conditioning', false, [
       { name: 'Sprints', sets: '10x100m' }
     ]),
-    createWorkout('February 7, 2026', 'Sun', 'Rest day', false, []),
+    createWorkout('February 7, 2026', 'Sunday', 'Rest day', false, []),
   ],
   '4': [
-    createWorkout('February 1, 2026', 'Mon', 'Full Body Strength', true, [
+    createWorkout('February 1, 2026', 'Monday', 'Full Body Strength', true, [
       { name: 'Squats', sets: '4x8' }
     ]),
-    createWorkout('February 2, 2026', 'Tue', 'HIIT Session', true, [
+    createWorkout('February 2, 2026', 'Tuesday', 'HIIT Session', true, [
       { name: 'Burpees', sets: '3x15' }
     ]),
-    createWorkout('February 3, 2026', 'Wed', null, false, []),
-    createWorkout('February 4, 2026', 'Thu', 'Lower Body Focus', false, [
+    createWorkout('February 3, 2026', 'Wednesday', null, false, []),
+    createWorkout('February 4, 2026', 'Thursday', 'Lower Body Focus', false, [
       { name: 'Leg Press', sets: '4x12' }
     ]),
-    createWorkout('February 5, 2026', 'Fri', null, false, []),
-    createWorkout('February 6, 2026', 'Sat', 'Upper Body & Core', false, [
+    createWorkout('February 5, 2026', 'Friday', null, false, []),
+    createWorkout('February 6, 2026', 'Saturday', 'Upper Body & Core', false, [
       { name: 'Push-ups', sets: '3x15' }
     ]),
-    createWorkout('February 7, 2026', 'Sun', null, false, []),
+    createWorkout('February 7, 2026', 'Sunday', null, false, []),
+  ],
+  '5': [
+    createWorkout('January 10, 2026', 'Monday', 'Upper Body', true, [
+      { name: 'Bench Press', sets: '4x8' }
+    ]),
+    createWorkout('January 13, 2026', 'Thursday', 'Lower Body', true, [
+      { name: 'Squats', sets: '4x8' }
+    ]),
+    createWorkout('January 15, 2026', 'Saturday', 'Full Body', true, [
+      { name: 'Deadlifts', sets: '3x10' }
+    ]),
+  ],
+  '6': [
+    createWorkout('December 26, 2025', 'Monday', 'Cardio', true, [
+      { name: 'Running', sets: '30 min' }
+    ]),
+    createWorkout('December 28, 2025', 'Wednesday', 'Strength Training', true, [
+      { name: 'Squats', sets: '3x12' }
+    ]),
   ],
 };
 
@@ -312,6 +346,26 @@ export const athleteDocuments: Record<string, Document[]> = {
   ],
 };
 
+// Messages by athlete
+export const athleteMessages: Record<string, Message[]> = {
+  '1': [
+    { id: 1, sender: 'Athlete', content: 'How was my last workout?', timestamp: new Date('2026-02-04') },
+    { id: 2, sender: 'Coach', content: 'Great job! Keep it up.', timestamp: new Date('2026-02-04') },
+  ],
+  '2': [
+    { id: 1, sender: 'Athlete', content: 'Need help with my form on the clean & jerk.', timestamp: new Date('2026-02-03') },
+    { id: 2, sender: 'Coach', content: 'Sure, I can review the video.', timestamp: new Date('2026-02-03') },
+  ],
+  '3': [
+    { id: 1, sender: 'Athlete', content: 'Feeling a bit sore today.', timestamp: new Date('2026-02-04') },
+    { id: 2, sender: 'Coach', content: 'Take it easy and rest.', timestamp: new Date('2026-02-04') },
+  ],
+  '4': [
+    { id: 1, sender: 'Athlete', content: 'Any tips for weight loss?', timestamp: new Date('2026-02-02') },
+    { id: 2, sender: 'Coach', content: 'Focus on diet and consistency.', timestamp: new Date('2026-02-02') },
+  ],
+};
+
 // Helper functions
 export const getAthlete = (id: string): Athlete | undefined => {
   return athletes[id] || archivedAthletes[id];
@@ -323,7 +377,32 @@ export const getAthleteWorkouts = (id: string): ScheduledWorkout[] => {
 
 export const getAthleteSchedule = (id: string, limit?: number): ScheduledWorkout[] => {
   const workouts = athleteWorkouts[id] || [];
-  return limit ? workouts.slice(-limit) : workouts;
+  const weekDates = getCurrentWeekDates();
+  
+  // Create a map of existing workouts by date
+  const workoutMap = new Map<string, ScheduledWorkout>();
+  workouts.forEach(workout => {
+    workoutMap.set(workout.date, workout);
+  });
+  
+  // Generate 7 days for the current week, merging with existing workouts
+  return weekDates.map(({ date, day, dateObj }) => {
+    const existingWorkout = workoutMap.get(date);
+    
+    if (existingWorkout) {
+      return existingWorkout;
+    }
+    
+    // Return empty workout slot
+    return {
+      date,
+      day,
+      dateObj,
+      workout: null,
+      completed: false,
+      exercises: []
+    };
+  });
 };
 
 export const getAthleteGoals = (id: string): Goal[] => {
@@ -334,10 +413,18 @@ export const getAthleteDocuments = (id: string): Document[] => {
   return athleteDocuments[id] || [];
 };
 
+export const getAthleteMessages = (id: string): Message[] => {
+  return athleteMessages[id] || [];
+};
+
 export const getActiveAthletes = (): Athlete[] => {
   return Object.values(athletes);
 };
 
 export const getArchivedAthletes = (): Athlete[] => {
   return Object.values(archivedAthletes);
+};
+
+export const isAthleteArchived = (id: string): boolean => {
+  return !!archivedAthletes[id];
 };

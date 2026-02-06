@@ -38,3 +38,37 @@ export const filterWorkoutsByMonth = (workouts: any[], targetMonth: Date): any[]
 export const getExerciseLetter = (index: number): string => {
   return String.fromCharCode(65 + index);
 };
+
+// Generate current week dates (7 days starting from Monday of current week)
+export const getCurrentWeekDates = (): Array<{ date: string; day: string; dateObj: Date }> => {
+  const today = new Date('2026-02-04'); // Wednesday
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Calculate Monday of this week (if today is Sunday, go back 6 days, otherwise go back to Monday)
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysToMonday);
+  
+  const week = [];
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    
+    // Format as "February 3, 2026" to match existing workout data format
+    const dateStr = date.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    week.push({
+      date: dateStr,
+      day: dayNames[i],
+      dateObj: date
+    });
+  }
+  
+  return week;
+};

@@ -31,8 +31,12 @@ export function AthleteCard({
           <div className="font-medium text-black">{name}</div>
           <div className="text-sm text-gray-500">
             Last workout: {lastWorkout}
-            {!isArchived && ` · ${streak} day streak`}
           </div>
+          {!isArchived && (
+            <div className="text-sm text-gray-500">
+              Streak: {streak} days
+            </div>
+          )}
         </div>
       </div>
       

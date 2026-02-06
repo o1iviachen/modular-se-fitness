@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Copy, Check, LogOut, Share2 } from 'lucide-react';
+import { Copy, Check, LogOut } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
@@ -15,20 +15,24 @@ export function CoachProfile() {
   const shouldHighlight = searchParams.get('highlight') === 'code';
 
   const handleCopyCode = () => {
-    if (user?.coachCode) {
-      navigator.clipboard.writeText(user.coachCode);
+    if (!user?.coachCode) return;
+    
+    const textArea = document.createElement('textarea');
+    textArea.value = user.coachCode;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
+    } catch (err) {
+      console.log('Copy failed:', err);
     }
-  };
-
-  const handleShareCode = () => {
-    if (navigator.share && user?.coachCode) {
-      navigator.share({
-        title: 'Join SE Fitness',
-        text: `Join me on SE Fitness! Use my coach code: ${user.coachCode}`,
-      });
-    }
+    
+    document.body.removeChild(textArea);
   };
 
   const handleLogout = () => {
@@ -87,31 +91,22 @@ export function CoachProfile() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopyCode}
-              className="flex-1 bg-black text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-black/90 transition-colors"
-            >
-              {codeCopied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span className="text-xs">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span className="text-xs">Copy Code</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleShareCode}
-              className="flex-1 bg-white text-black py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
-            >
-              <Share2 className="w-4 h-4" />
-              <span className="text-xs">Share</span>
-            </button>
-          </div>
+          <button
+            onClick={handleCopyCode}
+            className="w-full bg-black text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-black/90 transition-colors"
+          >
+            {codeCopied ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span className="text-xs">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span className="text-xs">Copy Code</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
