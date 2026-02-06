@@ -1,4 +1,4 @@
-import { Check, Plus, Moon } from 'lucide-react';
+import { Check, Moon } from 'lucide-react';
 import { getExerciseLetter } from '../utils/helpers';
 
 interface WorkoutCardProps {
@@ -53,15 +53,6 @@ export function WorkoutCard({
                     className="w-4 h-4"
                     fill={workout === 'Rest day' ? 'currentColor' : 'none'}
                   />
-                </button>
-              )}
-              {onAddWorkout && !workout && (
-                <button
-                  onClick={onAddWorkout}
-                  className="w-6 h-6 flex items-center justify-center text-[#FFD000] hover:bg-[#FFD000]/10 rounded-lg transition-colors"
-                  title="Add workout"
-                >
-                  <Plus className="w-4 h-4" />
                 </button>
               )}
               {completed && (
