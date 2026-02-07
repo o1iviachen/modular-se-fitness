@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Search, UserPlus } from 'lucide-react';
@@ -6,7 +6,26 @@ import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AthleteCard } from '../../components/ui/athlete-card';
 import { usePageState } from '../../hooks/usePageState';
-import { getActiveAthletes, getArchivedAthletes, Athlete } from '../../data/mockData';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+
+interface FirestoreAthlete {
+  id: string;
+  name: string;
+  email: string;
+  age: number | null;
+  gender: string | null;
+  weight: string | null;
+  height: string | null;
+  streak: number;
+  workoutsCompleted: number;
+  workoutCompletionRate: number;
+  lastWorkoutDate: any;
+  lastWorkout: string;
+  isArchived: boolean;
+  createdAt: any;
+  tenureMonths: number;
+}
 
 type SortOption = 'name' | 'lastWorkout-latest' | 'lastWorkout-earliest' | 'tenure-longest' | 'tenure-shortest';
 
@@ -15,81 +34,110 @@ export function CoachHome() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = usePageState<'active' | 'archived'>('coach-home-tab', 'active');
   const [searchQuery, setSearchQuery] = usePageState('coach-home-search', '');
-  const [athletes, setAthletes] = useState({
-    active: getActiveAthletes(),
-    archived: getArchivedAthletes(),
-  });
+  const [athletes, setAthletes] = useState<FirestoreAthlete[]>([]);
   const [sortOption, setSortOption] = usePageState<SortOption>('coach-home-sort', 'name');
   const [genderFilter, setGenderFilter] = usePageState<'all' | 'Male' | 'Female'>('coach-home-gender', 'all');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     type: 'archive' | 'reactivate';
-    athleteId: number;
+    athleteId: string;
     athleteName: string;
-  }>({ isOpen: false, type: 'archive', athleteId: 0, athleteName: '' });
+  }>({ isOpen: false, type: 'archive', athleteId: '', athleteName: '' });
 
-  const sortFns: Record<SortOption, (a: Athlete, b: Athlete) => number> = {
+  // Fetch athletes from Firestore in real-time
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'users'),
+      where('coachId', '==', user.id),
+      where('role', '==', 'athlete'),
+    );
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => {
+        const data = d.data();
+        const name = `${data.firstName} ${data.lastName}`;
+        const lastDate = data.lastWorkoutDate?.toDate?.();
+        const createdDate = data.createdAt?.toDate?.();
+        const tenureMonths = createdDate
+          ? Math.max(1, Math.round((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24 * 30)))
+          : 1;
+        return {
+          id: d.id,
+          name,
+          email: data.email,
+          age: data.age ?? null,
+          gender: data.gender ?? null,
+          weight: data.weight ?? null,
+          height: data.height ?? null,
+          streak: data.streak ?? 0,
+          workoutsCompleted: data.workoutsCompleted ?? 0,
+          workoutCompletionRate: data.workoutCompletionRate ?? 0,
+          lastWorkoutDate: data.lastWorkoutDate,
+          lastWorkout: lastDate
+            ? lastDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : 'No workouts yet',
+          isArchived: data.isArchived ?? false,
+          createdAt: data.createdAt,
+          tenureMonths,
+        } as FirestoreAthlete;
+      });
+      setAthletes(list);
+    });
+    return unsubscribe;
+  }, [user]);
+
+  const activeAthletes = athletes.filter(a => !a.isArchived);
+  const archivedAthletes = athletes.filter(a => a.isArchived);
+
+  const sortFns: Record<SortOption, (a: FirestoreAthlete, b: FirestoreAthlete) => number> = {
     'name': (a, b) => a.name.localeCompare(b.name),
-    'lastWorkout-latest': (a, b) => b.lastWorkoutDate.getTime() - a.lastWorkoutDate.getTime(),
-    'lastWorkout-earliest': (a, b) => a.lastWorkoutDate.getTime() - b.lastWorkoutDate.getTime(),
+    'lastWorkout-latest': (a, b) => {
+      const aTime = a.lastWorkoutDate?.toMillis?.() || 0;
+      const bTime = b.lastWorkoutDate?.toMillis?.() || 0;
+      return bTime - aTime;
+    },
+    'lastWorkout-earliest': (a, b) => {
+      const aTime = a.lastWorkoutDate?.toMillis?.() || 0;
+      const bTime = b.lastWorkoutDate?.toMillis?.() || 0;
+      return aTime - bTime;
+    },
     'tenure-longest': (a, b) => b.tenureMonths - a.tenureMonths,
-    'tenure-shortest': (a, b) => a.tenureMonths - b.tenureMonths
+    'tenure-shortest': (a, b) => a.tenureMonths - b.tenureMonths,
   };
 
-  const filteredAthletes = (activeTab === 'active' ? athletes.active : athletes.archived)
+  const currentList = activeTab === 'active' ? activeAthletes : archivedAthletes;
+  const filteredAthletes = currentList
     .filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(a => genderFilter === 'all' || a.gender === genderFilter)
     .sort(sortFns[sortOption]);
 
-  const handleReactivate = (e: React.MouseEvent, id: number) => {
+  const handleArchive = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const athlete = athletes.archived.find(a => a.id === id);
+    const athlete = activeAthletes.find(a => a.id === id);
     if (athlete) {
-      setConfirmModal({
-        isOpen: true,
-        type: 'reactivate',
-        athleteId: id,
-        athleteName: athlete.name
-      });
+      setConfirmModal({ isOpen: true, type: 'archive', athleteId: id, athleteName: athlete.name });
     }
   };
 
-  const handleArchive = (e: React.MouseEvent, id: number) => {
+  const handleReactivate = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const athlete = athletes.active.find(a => a.id === id);
+    const athlete = archivedAthletes.find(a => a.id === id);
     if (athlete) {
-      setConfirmModal({
-        isOpen: true,
-        type: 'archive',
-        athleteId: id,
-        athleteName: athlete.name
-      });
+      setConfirmModal({ isOpen: true, type: 'reactivate', athleteId: id, athleteName: athlete.name });
     }
   };
 
-  const confirmAction = () => {
-    if (confirmModal.type === 'archive') {
-      const athlete = athletes.active.find(a => a.id === confirmModal.athleteId);
-      if (athlete) {
-        setAthletes({
-          active: athletes.active.filter(a => a.id !== confirmModal.athleteId),
-          archived: [...athletes.archived, { ...athlete, streak: 0 }]
-        });
-      }
-    } else {
-      const athlete = athletes.archived.find(a => a.id === confirmModal.athleteId);
-      if (athlete) {
-        setAthletes({
-          active: [...athletes.active, { ...athlete, streak: 0 }],
-          archived: athletes.archived.filter(a => a.id !== confirmModal.athleteId)
-        });
-      }
-    }
-    setConfirmModal({ isOpen: false, type: 'archive', athleteId: 0, athleteName: '' });
+  const confirmAction = async () => {
+    const newArchived = confirmModal.type === 'archive';
+    await updateDoc(doc(db, 'users', confirmModal.athleteId), {
+      isArchived: newArchived,
+      ...(newArchived ? { streak: 0 } : {}),
+    });
+    setConfirmModal({ isOpen: false, type: 'archive', athleteId: '', athleteName: '' });
   };
 
   const cancelAction = () => {
-    setConfirmModal({ isOpen: false, type: 'archive', athleteId: 0, athleteName: '' });
+    setConfirmModal({ isOpen: false, type: 'archive', athleteId: '', athleteName: '' });
   };
 
   return (
@@ -97,7 +145,7 @@ export function CoachHome() {
       <div className="bg-black text-white px-6 py-8">
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">Welcome, Coach {user?.firstName}</h1>
-        <p className="text-gray-400 text-sm">{athletes.active.length} active athletes</p>
+        <p className="text-gray-400 text-sm">{activeAthletes.length} active athlete{activeAthletes.length !== 1 ? 's' : ''}</p>
       </div>
 
       <div className="px-6 -mt-4 mb-6">
@@ -116,10 +164,10 @@ export function CoachHome() {
       <div className="px-6 mb-6">
         <div className="bg-gray-200 rounded-xl p-1 flex">
           <button onClick={() => setActiveTab('active')} className={`flex-1 py-2 rounded-lg transition-colors ${activeTab === 'active' ? 'bg-white text-black shadow-sm' : 'text-gray-600'}`}>
-            Active ({athletes.active.length})
+            Active ({activeAthletes.length})
           </button>
           <button onClick={() => setActiveTab('archived')} className={`flex-1 py-2 rounded-lg transition-colors ${activeTab === 'archived' ? 'bg-white text-black shadow-sm' : 'text-gray-600'}`}>
-            Archived ({athletes.archived.length})
+            Archived ({archivedAthletes.length})
           </button>
         </div>
       </div>
@@ -152,8 +200,8 @@ export function CoachHome() {
                 name={athlete.name}
                 lastWorkout={athlete.lastWorkout}
                 streak={athlete.streak}
-                isArchived={activeTab === 'archived'}
-                onClick={() => navigate(`/coach/athlete/${athlete.id}`)}
+                isArchived={athlete.isArchived}
+                onClick={() => navigate(`/coach/athlete/${athlete.id}`, { state: { id: athlete.id, name: athlete.name, email: athlete.email, age: athlete.age, gender: athlete.gender, weight: athlete.weight, height: athlete.height, streak: athlete.streak, workoutsCompleted: athlete.workoutsCompleted, workoutCompletionRate: athlete.workoutCompletionRate, isArchived: athlete.isArchived } })}
                 onArchiveClick={(e) => handleArchive(e, athlete.id)}
                 onReactivateClick={(e) => handleReactivate(e, athlete.id)}
               />
@@ -164,7 +212,7 @@ export function CoachHome() {
 
       {activeTab === 'active' && (
         <div className="px-6 mt-6">
-          <button 
+          <button
             onClick={() => navigate('/coach/profile?highlight=code')}
             className="w-full bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm"
           >

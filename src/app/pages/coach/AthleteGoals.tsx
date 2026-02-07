@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Check, Edit2 } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { getAthlete } from '../../data/mockData';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 interface Goal {
   id: number;
@@ -15,8 +16,12 @@ interface Goal {
 export function AthleteGoals() {
   const { athleteId } = useParams();
   const navigate = useNavigate();
-  const athlete = athleteId ? getAthlete(athleteId) : null;
-  
+  const location = useLocation();
+  const routeState = location.state as { athleteName?: string } | null;
+
+  const [athleteName, setAthleteName] = useState(routeState?.athleteName ?? '');
+  const [loading, setLoading] = useState(!routeState?.athleteName);
+
   const [goals, setGoals] = useState<Goal[]>([
     { id: 1, title: 'Build muscle and increase strength', target: '175 lbs', deadline: '6 months', completed: false },
     { id: 2, title: 'Run a 5K under 25 minutes', target: '24:30', deadline: '3 months', completed: false },
@@ -25,12 +30,24 @@ export function AthleteGoals() {
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', target: '', deadline: '' });
 
+  // Fetch athlete name from Firestore (only if not passed via route state)
+  useEffect(() => {
+    if (!athleteId || routeState?.athleteName) { setLoading(false); return; }
+    getDoc(doc(db, 'users', athleteId)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setAthleteName(`${data.firstName} ${data.lastName}`);
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [athleteId]);
+
   const handleAddGoal = () => {
     if (newGoal.title.trim() && newGoal.target.trim() && newGoal.deadline.trim()) {
-      setGoals([...goals, { 
-        id: Date.now(), 
-        ...newGoal, 
-        completed: false 
+      setGoals([...goals, {
+        id: Date.now(),
+        ...newGoal,
+        completed: false
       }]);
       setNewGoal({ title: '', target: '', deadline: '' });
       setIsAddingGoal(false);
@@ -42,19 +59,20 @@ export function AthleteGoals() {
   };
 
   const handleToggleComplete = (id: number) => {
-    setGoals(goals.map(g => 
+    setGoals(goals.map(g =>
       g.id === id ? { ...g, completed: !g.completed } : g
     ));
   };
 
   const handleEditGoal = (goal: Goal) => {
-    // Navigate to edit page for coach
     navigate(`/coach/athlete/${athleteId}/goal/${goal.id}/edit`, {
       state: { goal }
     });
   };
 
-  if (!athlete) {
+  if (loading) return null;
+
+  if (!athleteName) {
     return (
       <div className="min-h-full bg-gray-50 flex items-center justify-center">
         <p className="text-gray-500">Athlete not found</p>
@@ -68,7 +86,7 @@ export function AthleteGoals() {
       <div className="bg-black text-white px-6 py-8">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => navigate(`/coach/athlete/${athleteId}`)}
+            onClick={() => navigate(-1)}
             className="text-white hover:text-[#FFD000] transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -81,7 +99,7 @@ export function AthleteGoals() {
           </button>
         </div>
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
-        <h1 className="text-xl font-semibold">{athlete.name}'s Goals</h1>
+        <h1 className="text-xl font-semibold">{athleteName}'s Goals</h1>
         <p className="text-gray-400 text-sm mt-1">Track your fitness objectives</p>
       </div>
 
@@ -158,8 +176,8 @@ export function AthleteGoals() {
                 <button
                   onClick={() => handleToggleComplete(goal.id)}
                   className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    goal.completed 
-                      ? 'bg-green-500 border-green-500' 
+                    goal.completed
+                      ? 'bg-green-500 border-green-500'
                       : 'border-gray-300 hover:border-[#FFD000]'
                   }`}
                 >

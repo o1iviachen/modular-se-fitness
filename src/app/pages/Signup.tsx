@@ -14,7 +14,7 @@ export function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signup, loginWithGoogle } = useAuth();
+  const { signup, signupWithGoogle } = useAuth();
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +39,17 @@ export function Signup() {
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      setError('Signup failed. Please try again.');
+    } catch (err: any) {
+      const code = err?.code;
+      if (code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Try logging in instead.');
+      } else if (code === 'auth/weak-password') {
+        setError('Password must be at least 6 characters.');
+      } else if (code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError(err?.message || 'Signup failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -51,16 +60,20 @@ export function Signup() {
       setError('Please select a role first');
       return;
     }
-    
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first and last name before continuing with Google');
+      return;
+    }
+
     try {
-      await loginWithGoogle();
+      await signupWithGoogle(role, firstName.trim(), lastName.trim());
       if (role === 'athlete') {
         navigate('/coach-code');
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      setError('Google signup failed');
+    } catch (err: any) {
+      setError(err?.message || 'Google signup failed');
     }
   };
 
@@ -202,7 +215,7 @@ export function Signup() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full p-4 bg-[#FFD000] text-black rounded-lg hover:bg-[#FFD000]/90 transition-colors disabled:opacity-50"
+                    className="w-full p-4 mt-2 bg-[#FFD000] text-black rounded-lg hover:bg-[#FFD000]/90 transition-colors disabled:opacity-50"
                   >
                     {loading ? 'Creating Account...' : 'Create Account'}
                   </button>

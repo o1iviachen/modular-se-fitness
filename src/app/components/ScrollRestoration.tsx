@@ -1,51 +1,77 @@
 import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigationType } from 'react-router';
 
-// Store scroll positions for each route
-const scrollPositions: { [key: string]: number } = {};
+/**
+ * Navigation-aware scroll restoration.
+ *
+ * Uses useNavigationType() to distinguish forward vs back navigation:
+ * - POP  (back/forward button or navigate(-1)) → restore previous scroll position
+ * - PUSH / REPLACE (new navigation)            → scroll to top
+ *
+ * Key insight: When the route changes, the Outlet content swaps in the DOM,
+ * which can trigger a scroll event that resets the position to 0. To avoid
+ * losing the real scroll position, we track it in a ref and persist it to
+ * sessionStorage during the render phase — before the DOM commit.
+ */
+const STORAGE_PREFIX = 'scroll_pos_';
 
 export function ScrollRestoration() {
   const location = useLocation();
-  const previousPath = useRef<string>('');
-  
+  const navigationType = useNavigationType();
+
+  // Track the live scroll position in a ref (updated by scroll listener)
+  const scrollPosRef = useRef(0);
+  const prevKeyRef = useRef(location.key);
+
+  // Save scroll position for the PREVIOUS route during the render phase,
+  // before React commits the DOM (which would change the scroll position).
+  if (prevKeyRef.current !== location.key) {
+    sessionStorage.setItem(
+      `${STORAGE_PREFIX}${prevKeyRef.current}`,
+      String(scrollPosRef.current)
+    );
+    prevKeyRef.current = location.key;
+  }
+
   useEffect(() => {
-    // Get the current path
-    const path = location.pathname;
-    
-    // Find the scrollable container (the main content area)
     const scrollContainer = document.querySelector('.flex-1.overflow-auto') as HTMLElement;
-    
     if (!scrollContainer) return;
-    
-    // Check if we have a stored scroll position for this path
-    const savedPosition = scrollPositions[path];
-    
-    // If we're returning to a page we've visited, restore position
-    // Otherwise scroll to top (new page)
-    if (savedPosition !== undefined && previousPath.current !== '') {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        scrollContainer.scrollTo(0, savedPosition);
-      }, 0);
+
+    const storageKey = `${STORAGE_PREFIX}${location.key}`;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (navigationType === 'POP') {
+      // Back/forward navigation — restore saved position
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved !== null) {
+        const pos = parseInt(saved, 10);
+        // Retry until the container is tall enough or we've tried 10 times (~500ms)
+        const tryRestore = (attempt: number) => {
+          scrollContainer.scrollTo(0, pos);
+          if (Math.abs(scrollContainer.scrollTop - pos) > 1 && attempt < 10) {
+            retryTimer = setTimeout(() => tryRestore(attempt + 1), 50);
+          }
+        };
+        requestAnimationFrame(() => tryRestore(0));
+      }
     } else {
+      // PUSH or REPLACE — scroll to top
       scrollContainer.scrollTo(0, 0);
     }
-    
-    previousPath.current = path;
-    
-    // Save scroll position when scrolling
+
+    // Track scroll position in a ref (the render-phase code above reads it)
+    scrollPosRef.current = scrollContainer.scrollTop;
     const handleScroll = () => {
-      scrollPositions[path] = scrollContainer.scrollTop;
+      scrollPosRef.current = scrollContainer.scrollTop;
     };
-    
+
     scrollContainer.addEventListener('scroll', handleScroll);
-    
+
     return () => {
+      if (retryTimer !== null) clearTimeout(retryTimer);
       scrollContainer.removeEventListener('scroll', handleScroll);
-      // Save one last time before unmounting
-      scrollPositions[path] = scrollContainer.scrollTop;
     };
-  }, [location.pathname]);
-  
+  }, [location.key, navigationType]);
+
   return null;
 }

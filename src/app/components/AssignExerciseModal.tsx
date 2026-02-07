@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { getActiveAthletes, getAthleteWorkouts } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { subscribeToWorkoutsInRange, WorkoutDoc } from '../lib/workoutService';
+import { getCurrentWeekDates, isoToDisplayDate } from '../utils/helpers';
 
 interface Exercise {
   id: number;
@@ -12,6 +16,13 @@ interface Exercise {
   videoUrl?: string;
 }
 
+interface FirestoreAthlete {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface AssignExerciseModalProps {
   exercise: Exercise;
   onClose: () => void;
@@ -19,29 +30,71 @@ interface AssignExerciseModalProps {
 
 export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAthleteId, setSelectedAthleteId] = useState<number | null>(null);
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
+  const [athletes, setAthletes] = useState<FirestoreAthlete[]>([]);
+  const [weekWorkouts, setWeekWorkouts] = useState<Map<string, WorkoutDoc>>(new Map());
+  const [loading, setLoading] = useState(true);
 
-  const athletes = getActiveAthletes();
-  const filteredAthletes = athletes.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Fetch coach's athletes from Firestore
+  useEffect(() => {
+    if (!user?.id) return;
 
-  const handleSelectAthlete = (athleteId: number) => {
+    const fetchAthletes = async () => {
+      const snap = await getDoc(doc(db, 'users', user.id));
+      if (snap.exists()) {
+        const data = snap.data();
+        const athletesMap = data.athletes || {};
+        const list: FirestoreAthlete[] = Object.entries(athletesMap).map(([uid, info]: [string, any]) => ({
+          id: uid,
+          firstName: info.firstName,
+          lastName: info.lastName,
+          email: info.email,
+        }));
+        setAthletes(list);
+      }
+      setLoading(false);
+    };
+
+    fetchAthletes();
+  }, [user?.id]);
+
+  // Subscribe to selected athlete's current week workouts
+  useEffect(() => {
+    if (!selectedAthleteId) return;
+
+    const weekDates = getCurrentWeekDates();
+    const startDate = weekDates[0].date;
+    const endDate = weekDates[weekDates.length - 1].date;
+
+    const unsubscribe = subscribeToWorkoutsInRange(selectedAthleteId, startDate, endDate, (workoutsMap) => {
+      setWeekWorkouts(workoutsMap);
+    });
+
+    return unsubscribe;
+  }, [selectedAthleteId]);
+
+  const filteredAthletes = athletes.filter(a =>
+    `${a.firstName} ${a.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSelectAthlete = (athleteId: string) => {
     setSelectedAthleteId(athleteId);
   };
 
   const handleBack = () => {
     setSelectedAthleteId(null);
     setSearchQuery('');
+    setWeekWorkouts(new Map());
   };
 
-  const handleSelectWorkout = (workout: any, athleteId: number) => {
-    // Navigate to workout detail with the exercise to add
-    navigate(`/coach/workout/${workout.date}`, {
+  const handleSelectDate = (dateISO: string, dayName: string) => {
+    navigate(`/coach/workout/${dateISO}`, {
       state: {
-        workoutName: workout.workout || 'New Workout',
-        workoutDate: workout.date,
-        workoutDay: workout.day,
-        athleteId: athleteId,
+        workoutDate: dateISO,
+        workoutDay: dayName,
+        athleteId: selectedAthleteId,
         exerciseToAdd: {
           id: Date.now(),
           name: exercise.name,
@@ -85,7 +138,9 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
 
           <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-3">
-              {filteredAthletes.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Loading athletes...</div>
+              ) : filteredAthletes.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">No athletes found</div>
               ) : (
                 filteredAthletes.map((athlete) => (
@@ -96,10 +151,10 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-[#FFD000] rounded-full flex items-center justify-center text-black font-medium">
-                        {athlete.name.split(' ').map(n => n[0]).join('')}
+                        {athlete.firstName[0]}{athlete.lastName[0]}
                       </div>
                       <div className="text-left">
-                        <h4 className="font-medium">{athlete.name}</h4>
+                        <h4 className="font-medium">{athlete.firstName} {athlete.lastName}</h4>
                         <p className="text-sm text-gray-600">{athlete.email}</p>
                       </div>
                     </div>
@@ -114,11 +169,15 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
     );
   }
 
-  // Show workout selection screen
+  // Show workout date selection screen
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
-  const workouts = getAthleteWorkouts(selectedAthleteId);
-  // Only show workouts that aren't rest days and have dates
-  const availableWorkouts = workouts.filter(w => w.workout !== 'Rest day' && w.date);
+  const weekDates = getCurrentWeekDates();
+
+  // Filter out rest days from the available dates
+  const availableDates = weekDates.filter(wd => {
+    const existing = weekWorkouts.get(wd.date);
+    return !existing?.isRestDay;
+  });
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -126,7 +185,7 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <button 
+              <button
                 onClick={handleBack}
                 className="text-sm text-gray-600 hover:text-gray-900 mb-2 flex items-center gap-1"
               >
@@ -135,7 +194,7 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
               </button>
               <h2 className="text-xl font-semibold">Select Workout</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Add "{exercise.name}" to {selectedAthlete?.name}'s workout
+                Add "{exercise.name}" to {selectedAthlete?.firstName} {selectedAthlete?.lastName}'s workout
               </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -146,28 +205,32 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
 
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-3">
-            {availableWorkouts.length === 0 ? (
+            {availableDates.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No workouts available. Create a workout first.
+                No available dates this week.
               </div>
             ) : (
-              availableWorkouts.map((workout, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectWorkout(workout, selectedAthleteId)}
-                  className="w-full bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors flex items-center justify-between group"
-                >
-                  <div className="text-left">
-                    <h4 className="font-medium">{workout.day} <span className="text-xs">·</span> {workout.date}</h4>
-                    {workout.exercises && workout.exercises.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-                </button>
-              ))
+              availableDates.map((wd) => {
+                const existing = weekWorkouts.get(wd.date);
+                const exerciseCount = existing?.exercises?.length || 0;
+                return (
+                  <button
+                    key={wd.date}
+                    onClick={() => handleSelectDate(wd.date, wd.day)}
+                    className="w-full bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors flex items-center justify-between group"
+                  >
+                    <div className="text-left">
+                      <h4 className="font-medium">{wd.day} <span className="text-xs">·</span> {isoToDisplayDate(wd.date)}</h4>
+                      {exerciseCount > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

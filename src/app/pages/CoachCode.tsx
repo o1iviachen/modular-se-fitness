@@ -9,7 +9,7 @@ export function CoachCode() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { connectCoach } = useAuth();
+  const { completeAthleteSignup } = useAuth();
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -30,10 +30,10 @@ export function CoachCode() {
     setLoading(true);
 
     try {
-      await connectCoach(code);
+      await completeAthleteSignup(code);
       navigate('/dashboard');
-    } catch (err) {
-      setError('Invalid coach code');
+    } catch (err: any) {
+      setError(err?.message || 'Invalid coach code');
     } finally {
       setLoading(false);
     }

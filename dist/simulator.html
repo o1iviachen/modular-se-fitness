@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SE Fitness - Device Simulator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 24px;
+      background: #16213e;
+      width: 100%;
+      border-bottom: 1px solid #0f3460;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .toolbar-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #a78bfa;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbar button, .toolbar select {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #0f3460;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .toolbar button:hover, .toolbar select:hover {
+      background: #0f3460;
+      border-color: #a78bfa;
+    }
+
+    .toolbar button.active {
+      background: #a78bfa;
+      color: #1a1a2e;
+      border-color: #a78bfa;
+      font-weight: 600;
+    }
+
+    .toolbar select {
+      appearance: auto;
+    }
+
+    .device-info {
+      font-size: 11px;
+      color: #666;
+      padding: 2px 8px;
+    }
+
+    /* Simulator area */
+    .simulator-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      overflow: auto;
+    }
+
+    /* Phone frame */
+    .device-frame {
+      position: relative;
+      background: #2d2d2d;
+      border-radius: 44px;
+      padding: 12px;
+      box-shadow:
+        0 0 0 2px #3a3a3a,
+        0 0 0 4px #1a1a1a,
+        0 20px 60px rgba(0, 0, 0, 0.5);
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    .device-frame::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 28px;
+      background: #2d2d2d;
+      border-radius: 0 0 18px 18px;
+      z-index: 10;
+    }
+
+    /* Dynamic Island style notch */
+    .device-frame.notch-dynamic::before {
+      width: 126px;
+      height: 28px;
+      background: #1a1a1a;
+      border-radius: 0 0 20px 20px;
+      top: 12px;
+    }
+
+    /* Pill notch for older iPhones */
+    .device-frame.notch-pill::before {
+      width: 150px;
+      height: 30px;
+      top: 12px;
+    }
+
+    /* No notch */
+    .device-frame.notch-none::before {
+      display: none;
+    }
+
+    .device-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 32px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .device-screen iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Home indicator bar */
+    .home-indicator {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background: #666;
+      border-radius: 3px;
+    }
+
+    /* Side buttons */
+    .device-frame .btn-power {
+      position: absolute;
+      right: -3px;
+      top: 100px;
+      width: 3px;
+      height: 60px;
+      background: #3a3a3a;
+      border-radius: 0 2px 2px 0;
+    }
+
+    .device-frame .btn-vol-up {
+      position: absolute;
+      left: -3px;
+      top: 80px;
+      width: 3px;
+      height: 36px;
+      background: #3a3a3a;
+      border-radius: 2px 0 0 2px;
+    }
+
+    .device-frame .btn-vol-down {
+      position: absolute;
+      left: -3px;
+      top: 124px;
+      width: 3px;
+      height: 36px;
+      background: #3a3a3a;
+      border-radius: 2px 0 0 2px;
+    }
+
+    /* URL bar */
+    .url-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .url-bar input {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #0f3460;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      width: 260px;
+      font-family: monospace;
+    }
+
+    .url-bar input:focus {
+      outline: none;
+      border-color: #a78bfa;
+    }
+
+    .url-bar button {
+      padding: 6px 10px;
+    }
+
+    /* Scale control */
+    .scale-slider {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scale-slider input[type="range"] {
+      width: 80px;
+      accent-color: #a78bfa;
+    }
+
+    .scale-value {
+      font-size: 12px;
+      color: #888;
+      width: 36px;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <span class="toolbar-title">Device Simulator</span>
+
+    <div class="toolbar-group">
+      <label class="toolbar-label">Device</label>
+      <select id="deviceSelect">
+        <optgroup label="iPhone">
+          <option value="iphone-se" data-w="375" data-h="667" data-notch="none">iPhone SE</option>
+          <option value="iphone-14" data-w="390" data-h="844" data-notch="pill" selected>iPhone 14</option>
+          <option value="iphone-14-pro" data-w="393" data-h="852" data-notch="dynamic">iPhone 14 Pro</option>
+          <option value="iphone-14-pro-max" data-w="430" data-h="932" data-notch="dynamic">iPhone 14 Pro Max</option>
+          <option value="iphone-15-pro" data-w="393" data-h="852" data-notch="dynamic">iPhone 15 Pro</option>
+          <option value="iphone-16-pro-max" data-w="440" data-h="956" data-notch="dynamic">iPhone 16 Pro Max</option>
+        </optgroup>
+        <optgroup label="Android">
+          <option value="pixel-7" data-w="412" data-h="915" data-notch="none">Pixel 7</option>
+          <option value="galaxy-s23" data-w="360" data-h="780" data-notch="none">Galaxy S23</option>
+          <option value="galaxy-s24-ultra" data-w="412" data-h="915" data-notch="none">Galaxy S24 Ultra</option>
+        </optgroup>
+        <optgroup label="Tablet">
+          <option value="ipad-mini" data-w="744" data-h="1133" data-notch="none">iPad Mini</option>
+          <option value="ipad-air" data-w="820" data-h="1180" data-notch="none">iPad Air</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="toolbar-group">
+      <button id="portraitBtn" class="active" title="Portrait">&#x1F4F1; Portrait</button>
+      <button id="landscapeBtn" title="Landscape">&#x1F504; Landscape</button>
+    </div>
+
+    <div class="toolbar-group url-bar">
+      <label class="toolbar-label">Path</label>
+      <input type="text" id="urlInput" value="/login" placeholder="/login" />
+      <button id="goBtn" title="Navigate">Go</button>
+    </div>
+
+    <div class="toolbar-group scale-slider">
+      <label class="toolbar-label">Scale</label>
+      <input type="range" id="scaleSlider" min="50" max="100" value="85" />
+      <span class="scale-value" id="scaleValue">85%</span>
+    </div>
+
+    <span class="device-info" id="deviceInfo">390 x 844</span>
+  </div>
+
+  <div class="simulator-area">
+    <div class="device-frame notch-pill" id="deviceFrame">
+      <div class="btn-power"></div>
+      <div class="btn-vol-up"></div>
+      <div class="btn-vol-down"></div>
+      <div class="device-screen" id="deviceScreen">
+        <iframe id="appFrame" src="/"></iframe>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <script>
+    const deviceSelect = document.getElementById('deviceSelect');
+    const portraitBtn = document.getElementById('portraitBtn');
+    const landscapeBtn = document.getElementById('landscapeBtn');
+    const urlInput = document.getElementById('urlInput');
+    const goBtn = document.getElementById('goBtn');
+    const scaleSlider = document.getElementById('scaleSlider');
+    const scaleValue = document.getElementById('scaleValue');
+    const deviceInfo = document.getElementById('deviceInfo');
+    const deviceFrame = document.getElementById('deviceFrame');
+    const deviceScreen = document.getElementById('deviceScreen');
+    const appFrame = document.getElementById('appFrame');
+
+    let isLandscape = false;
+
+    function getSelectedDevice() {
+      const opt = deviceSelect.options[deviceSelect.selectedIndex];
+      return {
+        w: parseInt(opt.dataset.w),
+        h: parseInt(opt.dataset.h),
+        notch: opt.dataset.notch
+      };
+    }
+
+    function updateDevice() {
+      const device = getSelectedDevice();
+      const scale = scaleSlider.value / 100;
+
+      let w = isLandscape ? device.h : device.w;
+      let h = isLandscape ? device.w : device.h;
+
+      deviceScreen.style.width = w + 'px';
+      deviceScreen.style.height = h + 'px';
+
+      deviceFrame.style.transform = `scale(${scale})`;
+      deviceFrame.style.transformOrigin = 'top center';
+
+      // Update notch style
+      deviceFrame.className = 'device-frame';
+      if (!isLandscape) {
+        deviceFrame.classList.add('notch-' + device.notch);
+      } else {
+        deviceFrame.classList.add('notch-none');
+      }
+
+      deviceInfo.textContent = `${w} x ${h}`;
+    }
+
+    function navigateTo(path) {
+      if (!path.startsWith('/')) path = '/' + path;
+      appFrame.src = path;
+    }
+
+    // Event listeners
+    deviceSelect.addEventListener('change', updateDevice);
+
+    portraitBtn.addEventListener('click', () => {
+      isLandscape = false;
+      portraitBtn.classList.add('active');
+      landscapeBtn.classList.remove('active');
+      updateDevice();
+    });
+
+    landscapeBtn.addEventListener('click', () => {
+      isLandscape = true;
+      landscapeBtn.classList.add('active');
+      portraitBtn.classList.remove('active');
+      updateDevice();
+    });
+
+    scaleSlider.addEventListener('input', () => {
+      scaleValue.textContent = scaleSlider.value + '%';
+      updateDevice();
+    });
+
+    goBtn.addEventListener('click', () => navigateTo(urlInput.value));
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') navigateTo(urlInput.value);
+    });
+
+    // Track iframe navigation
+    appFrame.addEventListener('load', () => {
+      try {
+        const path = appFrame.contentWindow.location.pathname;
+        urlInput.value = path;
+      } catch (e) {
+        // cross-origin, ignore
+      }
+    });
+
+    // Initialize
+    updateDevice();
+  </script>
+</body>
+</html>

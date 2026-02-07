@@ -55,13 +55,12 @@ export function WorkoutCard({
                   />
                 </button>
               )}
-              {completed && (
+              {completed ? (
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                   <Check className="w-4 h-4 text-white" />
                 </div>
-              )}
-              {!completed && workout && workout !== 'Rest day' && (
-                <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+              ) : !isRestDay && (
+                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                   <Check className="w-4 h-4 text-white" />
                 </div>
               )}
@@ -72,8 +71,8 @@ export function WorkoutCard({
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                   <Check className="w-4 h-4 text-white" />
                 </div>
-              ) : workout ? (
-                <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+              ) : !isRestDay ? (
+                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                   <Check className="w-4 h-4 text-white" />
                 </div>
               ) : null}
