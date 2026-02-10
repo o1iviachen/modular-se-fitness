@@ -6,10 +6,10 @@ export function AthleteHelpSupport() {
   const navigate = useNavigate();
 
   const faqItems = [
-    { question: 'How do I complete a workout?', answer: 'Tap on a workout, check off exercises as you complete them' },
-    { question: 'How do I message my coach?', answer: 'Go to Messages and select your coach to start a conversation' },
-    { question: 'How do I track my progress?', answer: 'View your profile to see stats, goals, and workout history' },
-    { question: 'What if I need to modify an exercise?', answer: 'Contact your coach through messages to request modifications' }
+    { question: 'How do I complete a workout?', answer: 'Tap on a workout, check off exercises as you complete them.' },
+    { question: 'How do I message my coach?', answer: 'Go to Messages and select your coach to start a conversation.' },
+    { question: 'How do I track my progress?', answer: 'View your profile to see stats, goals, and workout history.' },
+    { question: 'What if I need to modify an exercise?', answer: 'Contact your coach through messages to request modifications.' }
   ];
 
   return (

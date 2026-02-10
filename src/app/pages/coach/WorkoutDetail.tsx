@@ -5,6 +5,7 @@ import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
 import { saveWorkout, getWorkout, WorkoutExercise } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
+import { exerciseLibrary } from '../../data/exerciseLibrary';
 
 interface Exercise {
   id: number;
@@ -15,6 +16,7 @@ interface Exercise {
   notes: string;
   videoUrl?: string;
   supersetWithPrev: boolean;
+  result?: string;
 }
 
 export function WorkoutDetail() {
@@ -44,8 +46,9 @@ export function WorkoutDetail() {
           reps: ex.reps,
           weight: ex.weight,
           notes: ex.notes,
-          videoUrl: ex.videoUrl,
+          videoUrl: ex.videoUrl || exerciseLibrary.find(lib => lib.name === ex.name)?.videoUrl,
           supersetWithPrev: ex.supersetWithPrev || false,
+          result: ex.result || '',
         }));
         // If exerciseToAdd, append it
         if (exerciseToAdd && !loadedExercises.some(e => e.name === exerciseToAdd.name)) {
@@ -196,6 +199,11 @@ export function WorkoutDetail() {
                     <ExerciseSearchInput
                       value={exercise.name}
                       onChange={(value) => handleUpdateExercise(exercise.id, 'name', value)}
+                      onSelectExercise={(data) => {
+                        setExercises(prev => prev.map(ex =>
+                          ex.id === exercise.id ? { ...ex, name: data.name, videoUrl: data.videoUrl } : ex
+                        ));
+                      }}
                     />
                     <div className="grid grid-cols-3 gap-2 mb-2">
                       <div>
@@ -241,6 +249,12 @@ export function WorkoutDetail() {
                         <Play className="w-4 h-4 inline-block mr-1" />
                         Watch Video
                       </button>
+                    )}
+                    {exercise.result && (
+                      <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="text-xs font-medium text-green-700 mb-1">Athlete's Result</div>
+                        <p className="text-sm text-green-900 whitespace-pre-wrap">{exercise.result}</p>
+                      </div>
                     )}
                   </div>
                   <button

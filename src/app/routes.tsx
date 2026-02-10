@@ -17,7 +17,6 @@ import { AthleteEditProfile } from './pages/athlete/AthleteEditProfile';
 import { AthleteNotificationSettings } from './pages/athlete/AthleteNotificationSettings';
 import { AthleteHelpSupport } from './pages/athlete/AthleteHelpSupport';
 import { AthleteEmailSupport } from './pages/athlete/EmailSupport';
-import { EditGoal as AthleteEditGoal } from './pages/athlete/EditGoal';
 import { CoachHome } from './pages/coach/CoachHome';
 import { CoachLibrary } from './pages/coach/CoachLibrary';
 import { CoachInbox } from './pages/coach/CoachInbox';
@@ -33,7 +32,6 @@ import { CoachEmailSupport } from './pages/coach/EmailSupport';
 import { Messages } from './pages/Messages';
 import { AthleteGoals } from './pages/coach/AthleteGoals';
 import { AthleteDocuments } from './pages/coach/AthleteDocuments';
-import { EditGoal as CoachEditGoal } from './pages/coach/EditGoal';
 import { AthleteWorkouts } from './pages/coach/AthleteWorkouts';
 
 export const router = createBrowserRouter([
@@ -105,11 +103,7 @@ export const router = createBrowserRouter([
         path: 'goals',
         element: <Goals />
       },
-      {
-        path: 'goal/:goalId/edit',
-        element: <AthleteEditGoal />
-      },
-      {
+{
         path: 'documents',
         element: <Documents />
       },
@@ -151,11 +145,7 @@ export const router = createBrowserRouter([
         path: 'athlete/:athleteId/workouts',
         element: <AthleteWorkouts />
       },
-      {
-        path: 'athlete/:athleteId/goal/:goalId/edit',
-        element: <CoachEditGoal />
-      },
-      {
+{
         path: 'workout/:workoutId',
         element: <WorkoutDetail />
       },

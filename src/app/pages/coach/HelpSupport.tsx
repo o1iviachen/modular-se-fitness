@@ -6,9 +6,9 @@ export function HelpSupport() {
   const navigate = useNavigate();
 
   const faqItems = [
-    { question: 'How do I invite new athletes?', answer: 'Share your unique coach code from your profile' },
-    { question: 'How do I create workout programs?', answer: 'Navigate to an athlete\'s calendar and assign workouts' },
-    { question: 'Can I customize exercises?', answer: 'Yes, use the Exercise Library to create custom exercises' },
+    { question: 'How do I invite new athletes?', answer: 'Share your unique coach code from your profile.' },
+    { question: 'How do I create workout programs?', answer: 'Navigate to an athlete\'s calendar and assign workouts.' },
+    { question: 'Can I customize exercises?', answer: 'Yes, use the Exercise Library to create custom exercises.' },
     { question: 'How do I track athlete progress?', answer: 'View athlete details to see stats and workout history' }
   ];
 

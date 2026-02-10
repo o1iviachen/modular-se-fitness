@@ -16,6 +16,7 @@ export interface WorkoutExercise {
   videoUrl?: string;
   completed: boolean;
   supersetWithPrev?: boolean;
+  result?: string;
 }
 
 export interface WorkoutDoc {
@@ -109,6 +110,27 @@ export async function toggleExerciseCompletion(
   const data = snap.data();
   const exercises = [...data.exercises];
   exercises[exerciseIndex] = { ...exercises[exerciseIndex], completed };
+
+  await updateDoc(ref, {
+    exercises,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Save athlete's result text for a specific exercise */
+export async function saveExerciseResult(
+  athleteId: string,
+  dateString: string,
+  exerciseIndex: number,
+  result: string
+): Promise<void> {
+  const ref = workoutDocRef(athleteId, dateString);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  const exercises = [...data.exercises];
+  exercises[exerciseIndex] = { ...exercises[exerciseIndex], result };
 
   await updateDoc(ref, {
     exercises,

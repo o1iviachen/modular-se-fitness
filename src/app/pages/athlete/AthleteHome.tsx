@@ -26,19 +26,27 @@ interface DisplayWorkout {
 function ExerciseList({ exercises, onClickDate }: { exercises: DisplayWorkout['exercises']; onClickDate: () => void }) {
   const labels = getExerciseLabels(exercises);
   return (
-    <div className="divide-y divide-gray-100">
-      {exercises.map((exercise, idx) => (
-        <button
-          key={idx}
-          onClick={onClickDate}
-          className={`w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3 ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}
-        >
-          <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-            {labels[idx]}
-          </div>
-          <div className="text-gray-700">{exercise.name}</div>
-        </button>
-      ))}
+    <div>
+      {exercises.map((exercise, idx) => {
+        const connectedAbove = exercise.supersetWithPrev;
+        const connectedBelow = exercises[idx + 1]?.supersetWithPrev;
+        return (
+          <button
+            key={idx}
+            onClick={onClickDate}
+            className={`w-full px-4 py-2 hover:bg-gray-50 transition-colors text-left flex items-center gap-3 ${!connectedAbove ? 'border-t border-gray-100' : ''}`}
+          >
+            <div className="relative flex flex-col items-center self-stretch justify-center" style={{ minWidth: '2rem' }}>
+              {connectedAbove && <div className="w-1 bg-gray-100 rounded-full absolute -top-2 bottom-1/2" />}
+              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700 relative z-10">
+                {labels[idx]}
+              </div>
+              {connectedBelow && <div className="w-1 bg-gray-100 rounded-full absolute top-1/2 -bottom-2" />}
+            </div>
+            <div className="text-gray-700">{exercise.name}</div>
+          </button>
+        );
+      })}
     </div>
   );
 }

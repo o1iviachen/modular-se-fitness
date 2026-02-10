@@ -6,10 +6,11 @@ import { getSourceBadgeColor, getSourceName } from '../utils/exerciseHelpers';
 interface ExerciseSearchInputProps {
   value: string;
   onChange: (value: string) => void;
+  onSelectExercise?: (data: { name: string; videoUrl?: string }) => void;
   onBlur?: () => void;
 }
 
-export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchInputProps) {
+export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur }: ExerciseSearchInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,9 +43,10 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
     setIsOpen(true);
   };
 
-  const handleSelectExercise = (exerciseName: string) => {
-    setSearchQuery(exerciseName);
-    onChange(exerciseName);
+  const handleSelectExercise = (exercise: { name: string; videoUrl?: string }) => {
+    setSearchQuery(exercise.name);
+    onChange(exercise.name);
+    onSelectExercise?.(exercise);
     setIsOpen(false);
     inputRef.current?.blur();
   };
@@ -88,7 +90,7 @@ export function ExerciseSearchInput({ value, onChange, onBlur }: ExerciseSearchI
               {filteredExercises.slice(0, 8).map((exercise) => (
                 <button
                   key={exercise.id}
-                  onClick={() => handleSelectExercise(exercise.name)}
+                  onClick={() => handleSelectExercise({ name: exercise.name, videoUrl: exercise.videoUrl })}
                   className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-1">

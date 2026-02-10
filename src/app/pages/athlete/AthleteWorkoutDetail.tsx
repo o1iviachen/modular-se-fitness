@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Check, MessageSquare } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
 import { useAuth } from '../../context/AuthContext';
-import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, WorkoutExercise } from '../../lib/workoutService';
+import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, saveExerciseResult } from '../../lib/workoutService';
 import { isoToDisplayDate, isoToDayName, getExerciseLabels } from '../../utils/helpers';
+import { exerciseLibrary } from '../../data/exerciseLibrary';
 
 interface Exercise {
   id: string;
+  index: number;
   letter: string;
   name: string;
   sets: string;
@@ -17,6 +19,7 @@ interface Exercise {
   videoUrl?: string;
   completed: boolean;
   supersetWithPrev?: boolean;
+  result?: string;
 }
 
 export function AthleteWorkoutDetail() {
@@ -45,15 +48,17 @@ export function AthleteWorkoutDetail() {
         const labels = getExerciseLabels(workout.exercises);
         const loaded: Exercise[] = workout.exercises.map((ex, i) => ({
           id: String(i),
+          index: i,
           letter: labels[i],
           name: ex.name,
           sets: ex.sets,
           reps: ex.reps,
           weight: ex.weight,
           notes: ex.notes,
-          videoUrl: ex.videoUrl,
+          videoUrl: ex.videoUrl || exerciseLibrary.find(lib => lib.name === ex.name)?.videoUrl,
           completed: ex.completed,
           supersetWithPrev: ex.supersetWithPrev,
+          result: ex.result || '',
         }));
         setExercises(loaded);
         setWorkoutNotes(workout.workoutNotes || '');
@@ -95,6 +100,14 @@ export function AthleteWorkoutDetail() {
     setSelectedExercise(exercise);
   };
 
+  const handleSaveResult = async (exerciseId: string, result: string) => {
+    const ex = exercises.find(e => e.id === exerciseId);
+    if (!ex || !user?.id || !dateString) return;
+
+    setExercises(exercises.map(e => e.id === exerciseId ? { ...e, result } : e));
+    await saveExerciseResult(user.id, dateString, ex.index, result);
+  };
+
   const handleBackFromExerciseDetail = () => {
     setSelectedExercise(null);
   };
@@ -120,6 +133,7 @@ export function AthleteWorkoutDetail() {
       exercise={selectedExercise}
       onBack={handleBackFromExerciseDetail}
       onToggleComplete={toggleExerciseComplete}
+      onSaveResult={handleSaveResult}
     />;
   }
 
@@ -155,8 +169,17 @@ export function AthleteWorkoutDetail() {
       )}
 
       {/* Exercises */}
-      <div className="px-4 pt-4 space-y-4 pb-2">{exercises.map((exercise) => (
-        <div key={exercise.id} className={`bg-white rounded-2xl shadow-sm overflow-hidden ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}>
+      <div className="px-4 pt-4 pb-2">{exercises.map((exercise, idx) => {
+        const connectedAbove = exercise.supersetWithPrev;
+        const connectedBelow = exercises[idx + 1]?.supersetWithPrev;
+        return (
+        <div key={exercise.id} className="flex gap-0">
+          {/* Connector column */}
+          <div className="flex flex-col items-center" style={{ width: '1.25rem' }}>
+            <div className={`w-1 rounded-full flex-1 ${connectedAbove ? 'bg-gray-200' : ''}`} />
+            <div className={`w-1 rounded-full flex-1 ${connectedBelow ? 'bg-gray-200' : ''}`} />
+          </div>
+          <div className={`flex-1 bg-white rounded-2xl shadow-sm overflow-hidden ${!connectedAbove ? 'mt-4' : 'mt-1'}`}>
           {/* Exercise Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
             <div className="flex items-center gap-2">
@@ -216,16 +239,26 @@ export function AthleteWorkoutDetail() {
               </div>
             )}
 
-            {/* Add Results Button */}
+            {/* Athlete Result (if saved) */}
+            {exercise.result && (
+              <div className="mb-3">
+                <h4 className="text-black font-medium mb-2">Your Result</h4>
+                <p className="text-gray-700 text-sm whitespace-pre-wrap">{exercise.result}</p>
+              </div>
+            )}
+
+            {/* Add/Edit Results Button */}
             <button
               onClick={() => handleAddResults(exercise)}
               className="w-full py-3 border-2 border-black rounded-full text-black font-medium hover:bg-black hover:text-white transition-colors"
             >
-              Add results for {exercise.letter}
+              {exercise.result ? 'Edit results' : 'Add results'} for {exercise.letter}
             </button>
           </div>
         </div>
-      ))}</div>
+        </div>
+        );
+      })}</div>
 
       {/* Complete Workout Button - Fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
@@ -310,18 +343,28 @@ export function AthleteWorkoutDetail() {
 function ExerciseDetailView({
   exercise,
   onBack,
-  onToggleComplete
+  onToggleComplete,
+  onSaveResult,
 }: {
   exercise: Exercise;
   onBack: () => void;
   onToggleComplete: (id: string) => void;
+  onSaveResult: (id: string, result: string) => void;
 }) {
-  const [results, setResults] = useState('');
+  const [results, setResults] = useState(exercise.result || '');
   const [isComplete, setIsComplete] = useState(exercise.completed);
+  const [saving, setSaving] = useState(false);
 
   const handleToggleComplete = () => {
     setIsComplete(!isComplete);
     onToggleComplete(exercise.id);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSaveResult(exercise.id, results);
+    setSaving(false);
+    onBack();
   };
 
   return (
@@ -388,9 +431,13 @@ function ExerciseDetailView({
           </button>
         </div>
 
-        {/* Add Results Button */}
-        <button className="w-full py-4 bg-[#1a1a1a] text-white font-semibold rounded-xl hover:bg-black/90 transition-colors">
-          Add results for {exercise.letter}
+        {/* Save Results Button */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full py-4 bg-[#1a1a1a] text-white font-semibold rounded-xl hover:bg-black/90 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save results'}
         </button>
       </div>
     </div>

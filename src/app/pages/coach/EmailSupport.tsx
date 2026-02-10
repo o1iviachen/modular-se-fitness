@@ -2,26 +2,47 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Send } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+import { useAuth } from '../../context/AuthContext';
+import { functions } from '../../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 
 export function CoachEmailSupport() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     subject: '',
     message: ''
   });
+  const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSubmit = () => {
-    const mailto = `mailto:olivia63chen@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(formData.message)}`;
-    window.open(mailto, '_blank');
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate(-1);
-    }, 2000);
+  const handleSubmit = async () => {
+    if (!user) return;
+    setSending(true);
+    setError('');
+
+    try {
+      const sendSupportEmail = httpsCallable(functions, 'sendSupportEmail');
+      await sendSupportEmail({
+        subject: formData.subject,
+        message: formData.message,
+        fromEmail: user.email,
+        fromName: `${user.firstName} ${user.lastName}`,
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate(-1);
+      }, 2000);
+    } catch {
+      setError('Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -74,6 +95,12 @@ export function CoachEmailSupport() {
                 </div>
               </div>
 
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               <div className="bg-gray-100 rounded-xl p-4">
                 <p className="text-sm text-gray-600">
                   We typically respond within 24-48 hours. For urgent issues, please check our FAQ section.
@@ -84,10 +111,10 @@ export function CoachEmailSupport() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSubmit}
-                disabled={!formData.subject || !formData.message}
+                disabled={!formData.subject || !formData.message || sending}
                 className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Message
+                {sending ? 'Sending...' : 'Send Message'}
               </button>
               <button
                 onClick={() => navigate(-1)}
