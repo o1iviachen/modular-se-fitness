@@ -5,18 +5,27 @@ interface ProfileHeaderProps {
   firstName?: string;
   lastName?: string;
   email?: string;
+  photoURL?: string;
   subtitle?: ReactNode;
   onEditPhoto?: () => void;
 }
 
-export function ProfileHeader({ firstName, lastName, email, subtitle, onEditPhoto }: ProfileHeaderProps) {
+export function ProfileHeader({ firstName, lastName, email, photoURL, subtitle, onEditPhoto }: ProfileHeaderProps) {
   return (
-    <div className="bg-black text-white px-6 py-8">
+    <div className="bg-black text-white px-6 pt-12 pb-8">
       <div className="flex items-center gap-4 mb-4">
         <div className="relative">
-          <div className="w-20 h-20 bg-[#FFD000] rounded-full flex items-center justify-center text-black text-2xl">
-            {firstName?.[0]}{lastName?.[0]}
-          </div>
+          {photoURL ? (
+            <img
+              src={photoURL}
+              alt={`${firstName} ${lastName}`}
+              className="w-20 h-20 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-20 h-20 bg-[#FFD000] rounded-full flex items-center justify-center text-black text-2xl">
+              {firstName?.[0]}{lastName?.[0]}
+            </div>
+          )}
           {onEditPhoto && (
             <button
               onClick={onEditPhoto}

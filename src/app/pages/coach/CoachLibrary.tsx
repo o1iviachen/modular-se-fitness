@@ -1,8 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { useAuth } from '../../context/AuthContext';
+import { usePageState } from '../../hooks/usePageState';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { exerciseLibrary } from '../../data/exerciseLibrary';
+import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
 import { EquipmentFilterModal } from '../../components/EquipmentFilterModal';
 import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
@@ -37,16 +41,48 @@ const equipmentList = (() => {
 })();
 
 export function CoachLibrary() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSource, setSelectedSource] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedEquipment, setSelectedEquipment] = useState('all');
+  const [searchQuery, setSearchQuery] = usePageState('library-search', '');
+  const [selectedSource, setSelectedSource] = usePageState('library-source', 'all');
+  const [selectedCategory, setSelectedCategory] = usePageState('library-category', 'all');
+  const [selectedEquipment, setSelectedEquipment] = usePageState('library-equipment', 'all');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const filteredExercises = useMemo(() => exerciseLibrary.filter(exercise => {
+  // Subscribe to custom exercises from Firestore
+  useEffect(() => {
+    if (!user?.id) return;
+    const q = query(
+      collection(db, 'users', user.id, 'customExercises'),
+      orderBy('createdAt', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      const customs: LibraryExercise[] = snap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id as any,
+          name: data.name,
+          source: 'custom',
+          category: data.category,
+          equipment: data.equipment || 'Bodyweight',
+          description: data.description,
+          videoUrl: data.videoUrl || undefined,
+        };
+      });
+      setCustomExercises(customs);
+    });
+  }, [user?.id]);
+
+  // Merge static library with custom exercises
+  const allExercises = useMemo(
+    () => [...exerciseLibrary, ...customExercises],
+    [customExercises]
+  );
+
+  const filteredExercises = useMemo(() => allExercises.filter(exercise => {
     const matchesSearch = searchQuery === '' ||
                          exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          exercise.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -54,7 +90,7 @@ export function CoachLibrary() {
     const matchesCategory = selectedCategory === 'all' || exercise.category === selectedCategory;
     const matchesEquipment = selectedEquipment === 'all' || exercise.equipment === selectedEquipment;
     return matchesSearch && matchesSource && matchesCategory && matchesEquipment;
-  }), [searchQuery, selectedSource, selectedCategory, selectedEquipment]);
+  }), [allExercises, searchQuery, selectedSource, selectedCategory, selectedEquipment]);
 
   const openModal = (exercise) => {
     setSelectedExercise(exercise);

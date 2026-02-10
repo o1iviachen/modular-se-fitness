@@ -27,7 +27,7 @@ export function AthleteHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = usePageState<'upcoming' | 'past'>('athlete-home-tab', 'upcoming');
-  const [selectedMonthString, setSelectedMonthString] = usePageState('athlete-home-month', '2026-02-04');
+  const [selectedMonthString, setSelectedMonthString] = usePageState('athlete-home-month', getTodayISO());
   const [allWorkouts, setAllWorkouts] = useState<DisplayWorkout[]>([]);
 
   // Convert string back to Date
@@ -69,7 +69,7 @@ export function AthleteHome() {
   return (
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
-      <div className={`bg-black text-white px-6 py-8 ${activeTab === 'upcoming' ? 'pb-12' : 'pb-6'}`}>
+      <div className={`bg-black text-white px-6 pt-12 ${activeTab === 'upcoming' ? 'pb-12' : 'pb-6'}`}>
         <div className="flex items-center gap-3 mb-6">
           <img src={logo} alt="SE Fitness" className="h-8 w-auto" />
           <h1 className="text-xl font-semibold">{getGreeting()}, {user?.firstName}</h1>

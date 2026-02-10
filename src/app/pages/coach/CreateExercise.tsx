@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 
 export function CreateExercise() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -12,6 +16,7 @@ export function CreateExercise() {
     description: '',
     videoUrl: ''
   });
+  const [saving, setSaving] = useState(false);
 
   const categories = [
     'Strength',
@@ -24,11 +29,25 @@ export function CreateExercise() {
     'Other'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Creating exercise:', formData);
-    alert('Exercise created successfully!');
-    navigate('/coach/library');
+    if (!user?.id || saving) return;
+    setSaving(true);
+    try {
+      await addDoc(collection(db, 'users', user.id, 'customExercises'), {
+        name: formData.name,
+        category: formData.category,
+        equipment: formData.equipment || 'Bodyweight',
+        description: formData.description,
+        videoUrl: formData.videoUrl || null,
+        source: 'custom',
+        createdAt: serverTimestamp(),
+      });
+      navigate('/coach/library');
+    } catch (err) {
+      console.error('Failed to create exercise:', err);
+      setSaving(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -136,9 +155,10 @@ export function CreateExercise() {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
+            disabled={saving}
+            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50"
           >
-            Create Exercise
+            {saving ? 'Creating...' : 'Create Exercise'}
           </button>
           <button
             type="button"

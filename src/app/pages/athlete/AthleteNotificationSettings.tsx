@@ -1,25 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
+const defaultSettings = {
+  emailNotifications: true,
+  pushNotifications: true,
+  newWorkoutAssigned: true,
+  workoutReminder: true,
+  messageReceived: true,
+};
 
 export function AthleteNotificationSettings() {
   const navigate = useNavigate();
-  
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    newWorkoutAssigned: true,
-    workoutReminder: true,
-    messageReceived: true,
-  });
+  const { user } = useAuth();
+  const [settings, setSettings] = useState(defaultSettings);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getDoc(doc(db, 'users', user.id)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.notificationSettings) {
+          setSettings({ ...defaultSettings, ...data.notificationSettings });
+        }
+      }
+      setLoaded(true);
+    });
+  }, [user?.id]);
 
   const handleToggle = (field: keyof typeof settings) => {
     setSettings({ ...settings, [field]: !settings[field] });
   };
 
-  const handleSave = () => {
-    // Save logic here
+  const handleSave = async () => {
+    if (!user?.id) return;
+    await updateDoc(doc(db, 'users', user.id), { notificationSettings: settings });
     navigate(-1);
   };
 
@@ -37,6 +57,8 @@ export function AthleteNotificationSettings() {
       />
     </button>
   );
+
+  if (!loaded) return null;
 
   return (
     <div className="min-h-full bg-gray-50">
@@ -105,42 +127,6 @@ export function AthleteNotificationSettings() {
                   <div className="text-sm text-gray-600">Notify when coach sends a message</div>
                 </div>
                 <ToggleSwitch enabled={settings.messageReceived} onChange={() => handleToggle('messageReceived')} />
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Coach Feedback</div>
-                  <div className="text-sm text-gray-600">Notify when coach provides feedback</div>
-                </div>
-                <ToggleSwitch enabled={settings.coachFeedback} onChange={() => handleToggle('coachFeedback')} />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-100">
-              <h3 className="font-semibold">Other</h3>
-            </div>
-            <div className="divide-y divide-gray-100">
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Motivational Tips</div>
-                  <div className="text-sm text-gray-600">Receive fitness tips and motivation</div>
-                </div>
-                <ToggleSwitch enabled={settings.motivationalTips} onChange={() => handleToggle('motivationalTips')} />
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Marketing Emails</div>
-                  <div className="text-sm text-gray-600">Receive tips and product updates</div>
-                </div>
-                <ToggleSwitch enabled={settings.marketingEmails} onChange={() => handleToggle('marketingEmails')} />
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">System Updates</div>
-                  <div className="text-sm text-gray-600">Important app updates and announcements</div>
-                </div>
-                <ToggleSwitch enabled={settings.systemUpdates} onChange={() => handleToggle('systemUpdates')} />
               </div>
             </div>
           </div>

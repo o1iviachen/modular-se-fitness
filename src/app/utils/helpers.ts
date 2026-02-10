@@ -28,8 +28,8 @@ export const isoToDayName = (iso: string): string => {
   return d.toLocaleDateString('en-US', { weekday: 'long' });
 };
 
-// Get "today" as ISO string (hardcoded for demo, change to new Date() for production)
-export const getTodayISO = (): string => toISODateString(new Date('2026-02-04'));
+// Get "today" as ISO string
+export const getTodayISO = (): string => toISODateString(new Date());
 
 // ===== Existing Helpers =====
 
@@ -75,7 +75,7 @@ export const getExerciseLetter = (index: number): string => {
 // Generate current week dates (7 days starting from Monday of current week)
 // Returns ISO date strings as the canonical format
 export const getCurrentWeekDates = (): Array<{ date: string; day: string; dateObj: Date }> => {
-  const today = new Date('2026-02-04'); // Wednesday
+  const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
   // Calculate Monday of this week (if today is Sunday, go back 6 days, otherwise go back to Monday)

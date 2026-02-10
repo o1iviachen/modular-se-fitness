@@ -1,25 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
+const defaultSettings = {
+  emailNotifications: true,
+  pushNotifications: true,
+  newAthleteJoins: true,
+  workoutCompleted: true,
+  messageReceived: true,
+};
 
 export function NotificationSettings() {
   const navigate = useNavigate();
-  
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    newAthleteJoins: true,
-    workoutCompleted: true,
-    messageReceived: true,
-  });
+  const { user } = useAuth();
+  const [settings, setSettings] = useState(defaultSettings);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getDoc(doc(db, 'users', user.id)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.notificationSettings) {
+          setSettings({ ...defaultSettings, ...data.notificationSettings });
+        }
+      }
+      setLoaded(true);
+    });
+  }, [user?.id]);
 
   const handleToggle = (field: keyof typeof settings) => {
     setSettings({ ...settings, [field]: !settings[field] });
   };
 
-  const handleSave = () => {
-    // Save logic here
+  const handleSave = async () => {
+    if (!user?.id) return;
+    await updateDoc(doc(db, 'users', user.id), { notificationSettings: settings });
     navigate(-1);
   };
 
@@ -37,6 +57,8 @@ export function NotificationSettings() {
       />
     </button>
   );
+
+  if (!loaded) return null;
 
   return (
     <div className="min-h-full bg-gray-50">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Copy, Check, LogOut } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -6,11 +6,15 @@ import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
 import { SectionHeader } from '../../components/ui/section-header';
 import { ListItemButton } from '../../components/ui/list-item-button';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export function CoachProfile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserPhoto } = useAuth();
   const [codeCopied, setCodeCopied] = useState(false);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchParams] = useSearchParams();
   const shouldHighlight = searchParams.get('highlight') === 'code';
 
@@ -43,7 +47,18 @@ export function CoachProfile() {
   };
 
   const handleEditPhoto = () => {
-    alert('Profile photo editing would be implemented here');
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    const storageRef = ref(storage, `profilePhotos/${user.id}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
+    updateUserPhoto(downloadURL);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const stats = [
@@ -54,10 +69,18 @@ export function CoachProfile() {
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
-      <ProfileHeader 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handlePhotoSelected}
+        className="hidden"
+      />
+      <ProfileHeader
         firstName={user?.firstName}
         lastName={user?.lastName}
         email={user?.email}
+        photoURL={user?.photoURL}
         onEditPhoto={handleEditPhoto}
       />
 

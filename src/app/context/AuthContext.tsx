@@ -19,6 +19,7 @@ interface User {
   role: 'athlete' | 'coach';
   coachCode?: string;
   coachId?: string;
+  photoURL?: string;
 }
 
 interface PendingAthleteSignup {
@@ -39,6 +40,7 @@ interface AuthContextType {
   logout: () => void;
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
+  updateUserPhoto: (photoURL: string) => void;
   isAuthenticated: boolean;
 }
 
@@ -65,6 +67,7 @@ async function fetchUserProfile(uid: string): Promise<User | null> {
     role: data.role,
     coachCode: data.coachCode,
     coachId: data.coachId,
+    photoURL: data.photoURL,
   };
 }
 
@@ -249,6 +252,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('se_fitness_user');
   };
 
+  const updateUserPhoto = (photoURL: string) => {
+    setUser((prev) => prev ? { ...prev, photoURL } : null);
+  };
+
   const connectCoach = async (coachCode: string) => {
     const codeSnap = await getDoc(doc(db, 'coachCodes', coachCode));
     if (!codeSnap.exists()) throw new Error('Invalid coach code');
@@ -264,7 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, connectCoach, completeAthleteSignup, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

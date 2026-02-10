@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -6,14 +6,16 @@ import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
 import { SectionHeader } from '../../components/ui/section-header';
 import { ListItemButton } from '../../components/ui/list-item-button';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeToAllWorkouts, WorkoutDoc } from '../../lib/workoutService';
 import { getTodayISO } from '../../utils/helpers';
 
 export function AthleteProfile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserPhoto } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState({ completed: 0, streak: 0, thisMonth: 0 });
   const [profile, setProfile] = useState<{ age?: number; gender?: string; weight?: string; height?: string }>({});
 
@@ -65,17 +67,36 @@ export function AthleteProfile() {
   };
 
   const handleEditPhoto = () => {
-    alert('Profile photo editing would be implemented here');
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    const storageRef = ref(storage, `profilePhotos/${user.id}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
+    updateUserPhoto(downloadURL);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const hasPhysicalInfo = profile.age || profile.gender || profile.weight || profile.height;
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handlePhotoSelected}
+        className="hidden"
+      />
       <ProfileHeader
         firstName={user?.firstName}
         lastName={user?.lastName}
         email={user?.email}
+        photoURL={user?.photoURL}
         onEditPhoto={handleEditPhoto}
       />
 

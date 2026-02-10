@@ -28,8 +28,8 @@ export function AthleteWorkouts() {
   const [loading, setLoading] = useState(!routeState?.athleteName);
   const [allWorkouts, setAllWorkouts] = useState<DisplayWorkout[]>([]);
 
-  const [selectedMonth, setSelectedMonth] = useState(new Date('2026-02-04'));
-  const currentMonth = new Date('2026-02-04');
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const currentMonth = new Date();
 
   // Fetch athlete name if not passed via route state
   useEffect(() => {
