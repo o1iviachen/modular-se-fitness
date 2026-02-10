@@ -1,12 +1,12 @@
 import { Check, Moon } from 'lucide-react';
-import { getExerciseLetter } from '../utils/helpers';
+import { getExerciseLabels } from '../utils/helpers';
 
 interface WorkoutCardProps {
   date: string;
   day: string;
   workout: string | null;
   completed: boolean;
-  exercises: Array<{ name: string; sets: string }>;
+  exercises: Array<{ name: string; sets: string; supersetWithPrev?: boolean }>;
   onClick?: () => void;
   onAddWorkout?: (e: React.MouseEvent) => void;
   onSetRestDay?: (e: React.MouseEvent) => void;
@@ -95,21 +95,24 @@ export function WorkoutCard({
         <div className="p-4 text-gray-600">Rest day</div>
       ) : (
         <div className="divide-y divide-gray-100">
-          {exercises.map((exercise, idx) => (
-            <button
-              key={idx}
-              onClick={onClick}
-              className={`w-full p-4 text-left flex items-center gap-3 ${
-                isClickable ? 'hover:bg-gray-50 transition-colors' : ''
-              }`}
-              disabled={!isClickable}
-            >
-              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                {getExerciseLetter(idx)}
-              </div>
-              <div className="text-gray-700">{exercise.name}</div>
-            </button>
-          ))}
+          {(() => {
+            const labels = getExerciseLabels(exercises);
+            return exercises.map((exercise, idx) => (
+              <button
+                key={idx}
+                onClick={onClick}
+                className={`w-full p-4 text-left flex items-center gap-3 ${
+                  isClickable ? 'hover:bg-gray-50 transition-colors' : ''
+                } ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}
+                disabled={!isClickable}
+              >
+                <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
+                  {labels[idx]}
+                </div>
+                <div className="text-gray-700">{exercise.name}</div>
+              </button>
+            ));
+          })()}
         </div>
       )}
     </div>

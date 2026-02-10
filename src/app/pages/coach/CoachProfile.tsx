@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Copy, Check, LogOut } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -6,13 +6,14 @@ import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
 import { SectionHeader } from '../../components/ui/section-header';
 import { ListItemButton } from '../../components/ui/list-item-button';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { db, storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export function CoachProfile() {
   const { user, logout, updateUserPhoto } = useAuth();
   const [codeCopied, setCodeCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchParams] = useSearchParams();
@@ -53,19 +54,75 @@ export function CoachProfile() {
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
-    const storageRef = ref(storage, `profilePhotos/${user.id}`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
-    updateUserPhoto(downloadURL);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `profilePhotos/${user.id}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
+      updateUserPhoto(downloadURL);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  const stats = [
-    { label: 'Active Athletes', value: '12' },
-    { label: 'Total Workouts', value: '156' },
-    { label: 'This Month', value: '38' }
-  ];
+  const [stats, setStats] = useState([
+    { label: 'Active Athletes', value: '—' },
+    { label: 'Total Workouts', value: '—' },
+    { label: 'This Month', value: '—' }
+  ]);
+  const [memberSince, setMemberSince] = useState('');
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    (async () => {
+      // Get coach's createdAt
+      const coachSnap = await getDoc(doc(db, 'users', user.id));
+      if (coachSnap.exists()) {
+        const data = coachSnap.data();
+        if (data.createdAt?.toDate) {
+          const date = data.createdAt.toDate();
+          setMemberSince(date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+        }
+      }
+
+      // Get athletes
+      const athleteQuery = query(
+        collection(db, 'users'),
+        where('coachId', '==', user.id),
+        where('role', '==', 'athlete')
+      );
+      const athleteSnap = await getDocs(athleteQuery);
+      const athletes = athleteSnap.docs;
+      const activeCount = athletes.filter(d => !d.data().isArchived).length;
+
+      // Count workouts across all athletes
+      let totalWorkouts = 0;
+      let thisMonthWorkouts = 0;
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      for (const athleteDoc of athletes) {
+        const workoutsSnap = await getDocs(collection(db, 'users', athleteDoc.id, 'workouts'));
+        for (const wDoc of workoutsSnap.docs) {
+          const data = wDoc.data();
+          if (!data.isRestDay) {
+            totalWorkouts++;
+            if (data.date?.startsWith(currentMonth)) {
+              thisMonthWorkouts++;
+            }
+          }
+        }
+      }
+
+      setStats([
+        { label: 'Active Athletes', value: String(activeCount) },
+        { label: 'Total Workouts', value: String(totalWorkouts) },
+        { label: 'This Month', value: String(thisMonthWorkouts) }
+      ]);
+    })();
+  }, [user?.id]);
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
@@ -82,6 +139,7 @@ export function CoachProfile() {
         email={user?.email}
         photoURL={user?.photoURL}
         onEditPhoto={handleEditPhoto}
+        uploading={uploading}
       />
 
       {/* Stats */}
@@ -151,7 +209,7 @@ export function CoachProfile() {
           </div>
           <div>
             <div className="text-sm text-gray-600 mb-1">Member Since</div>
-            <div className="text-black">January 2026</div>
+            <div className="text-black">{memberSince || '—'}</div>
           </div>
         </PageCard>
       </div>

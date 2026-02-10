@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { usePageState } from '../../hooks/usePageState';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { subscribeToAllWorkouts } from '../../lib/workoutService';
-import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, filterWorkoutsByMonth, getExerciseLetter } from '../../utils/helpers';
+import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, filterWorkoutsByMonth, getExerciseLabels } from '../../utils/helpers';
 
 // Helper to get time-based greeting
 const getGreeting = () => {
@@ -20,7 +20,27 @@ interface DisplayWorkout {
   day: string;
   isRestDay: boolean;
   completed: boolean;
-  exercises: Array<{ name: string; sets: string }>;
+  exercises: Array<{ name: string; sets: string; supersetWithPrev?: boolean }>;
+}
+
+function ExerciseList({ exercises, onClickDate }: { exercises: DisplayWorkout['exercises']; onClickDate: () => void }) {
+  const labels = getExerciseLabels(exercises);
+  return (
+    <div className="divide-y divide-gray-100">
+      {exercises.map((exercise, idx) => (
+        <button
+          key={idx}
+          onClick={onClickDate}
+          className={`w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3 ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}
+        >
+          <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
+            {labels[idx]}
+          </div>
+          <div className="text-gray-700">{exercise.name}</div>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export function AthleteHome() {
@@ -47,7 +67,7 @@ export function AthleteHome() {
         day: w.date === todayISO ? 'Today' : isoToDayName(w.date),
         isRestDay: w.isRestDay,
         completed: w.completed,
-        exercises: w.exercises.map(ex => ({ name: ex.name, sets: ex.sets })),
+        exercises: w.exercises.map(ex => ({ name: ex.name, sets: ex.sets, supersetWithPrev: ex.supersetWithPrev })),
       }));
       setAllWorkouts(display);
     });
@@ -70,7 +90,7 @@ export function AthleteHome() {
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
       <div className={`bg-black text-white px-6 pt-12 ${activeTab === 'upcoming' ? 'pb-12' : 'pb-6'}`}>
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <img src={logo} alt="SE Fitness" className="h-8 w-auto" />
           <h1 className="text-xl font-semibold">{getGreeting()}, {user?.firstName}</h1>
         </div>
@@ -142,7 +162,7 @@ export function AthleteHome() {
                   <div className="text-sm text-black">
                     {isoToDisplayDate(todayWorkout.date)} <span className="text-xs">·</span> Today
                   </div>
-                  <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${todayWorkout.completed ? 'bg-green-500' : 'bg-gray-400'}`}>
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 </button>
@@ -151,20 +171,7 @@ export function AthleteHome() {
                 {todayWorkout.isRestDay ? (
                   <div className="p-4 text-gray-600">Rest day</div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
-                    {todayWorkout.exercises.map((exercise, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => navigate(`/athlete/workout/${todayWorkout.date}`)}
-                        className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
-                      >
-                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                          {getExerciseLetter(idx)}
-                        </div>
-                        <div className="text-gray-700">{exercise.name}</div>
-                      </button>
-                    ))}
-                  </div>
+                  <ExerciseList exercises={todayWorkout.exercises} onClickDate={() => navigate(`/athlete/workout/${todayWorkout.date}`)} />
                 )}
               </div>
             </div>
@@ -196,7 +203,7 @@ export function AthleteHome() {
                     <div className="text-sm text-gray-700">
                       {isoToDisplayDate(workout.date)} <span className="text-xs">·</span> {workout.day}
                     </div>
-                    <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${workout.completed ? 'bg-green-500' : 'bg-gray-400'}`}>
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   </button>
@@ -205,20 +212,7 @@ export function AthleteHome() {
                   {workout.isRestDay ? (
                     <div className="p-4 text-gray-600">Rest day</div>
                   ) : (
-                    <div className="divide-y divide-gray-100">
-                      {workout.exercises.map((exercise, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => navigate(`/athlete/workout/${workout.date}`)}
-                          className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
-                        >
-                          <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                            {getExerciseLetter(idx)}
-                          </div>
-                          <div className="text-gray-700">{exercise.name}</div>
-                        </button>
-                      ))}
-                    </div>
+                    <ExerciseList exercises={workout.exercises} onClickDate={() => navigate(`/athlete/workout/${workout.date}`)} />
                   )}
                 </div>
               ))}
@@ -262,20 +256,7 @@ export function AthleteHome() {
                 {workout.isRestDay ? (
                   <div className="p-4 text-gray-600">Rest day</div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
-                    {workout.exercises.map((exercise, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => navigate(`/athlete/workout/${workout.date}`)}
-                        className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
-                      >
-                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                          {getExerciseLetter(idx)}
-                        </div>
-                        <div className="text-gray-700">{exercise.name}</div>
-                      </button>
-                    ))}
-                  </div>
+                  <ExerciseList exercises={workout.exercises} onClickDate={() => navigate(`/athlete/workout/${workout.date}`)} />
                 )}
               </div>
             ))}

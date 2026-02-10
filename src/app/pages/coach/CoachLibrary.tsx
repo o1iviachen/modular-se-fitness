@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronDown, Plus } from 'lucide-react';
+import { Search, ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { usePageState } from '../../hooks/usePageState';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
@@ -49,6 +50,7 @@ export function CoachLibrary() {
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string; name: string }>({ isOpen: false, id: '', name: '' });
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -100,6 +102,12 @@ export function CoachLibrary() {
   const closeModal = () => {
     setSelectedExercise(null);
     setIsModalOpen(false);
+  };
+
+  const handleDeleteExercise = async () => {
+    if (!user?.id || !deleteModal.id) return;
+    await deleteDoc(doc(db, 'users', user.id, 'customExercises', deleteModal.id));
+    setDeleteModal({ isOpen: false, id: '', name: '' });
   };
 
   return (
@@ -224,6 +232,24 @@ export function CoachLibrary() {
                   >
                     View Details
                   </button>
+                  {exercise.source === 'custom' && (
+                    <>
+                      <button
+                        className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                        onClick={() => navigate(`/coach/edit-exercise/${exercise.id}`)}
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="px-3 py-2 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm text-red-500"
+                        onClick={() => setDeleteModal({ isOpen: true, id: String(exercise.id), name: exercise.name })}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -255,6 +281,15 @@ export function CoachLibrary() {
           onClose={closeModal}
         />
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Exercise"
+        message={`Are you sure you want to delete "${deleteModal.name}"? This cannot be undone.`}
+        onConfirm={handleDeleteExercise}
+        onCancel={() => setDeleteModal({ isOpen: false, id: '', name: '' })}
+      />
     </div>
   );
 }

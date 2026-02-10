@@ -67,9 +67,36 @@ export const filterWorkoutsByMonth = (workouts: any[], targetMonth: Date): any[]
   });
 };
 
-// Get letter for exercise index (A, B, C, etc.)
-export const getExerciseLetter = (index: number): string => {
-  return String.fromCharCode(65 + index);
+// Compute superset-aware labels for a list of exercises.
+// Standalone exercises get a single letter (A, B, C).
+// Superset groups get letter + number (A1, A2, B1, B2).
+export const getExerciseLabels = (exercises: Array<{ supersetWithPrev?: boolean }>): string[] => {
+  if (exercises.length === 0) return [];
+
+  // Group exercises: each group is an array of indices
+  const groups: number[][] = [[0]];
+  for (let i = 1; i < exercises.length; i++) {
+    if (exercises[i].supersetWithPrev) {
+      groups[groups.length - 1].push(i);
+    } else {
+      groups.push([i]);
+    }
+  }
+
+  const labels: string[] = new Array(exercises.length);
+  for (let g = 0; g < groups.length; g++) {
+    const letter = String.fromCharCode(65 + g);
+    const group = groups[g];
+    if (group.length === 1) {
+      labels[group[0]] = letter;
+    } else {
+      for (let j = 0; j < group.length; j++) {
+        labels[group[j]] = `${letter}${j + 1}`;
+      }
+    }
+  }
+
+  return labels;
 };
 
 // Generate current week dates (7 days starting from Monday of current week)

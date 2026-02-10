@@ -12,6 +12,7 @@ interface Conversation {
   lastMessage: string;
   lastMessageAt: any;
   avatar: string;
+  hasUnread: boolean;
 }
 
 export function CoachInbox() {
@@ -29,12 +30,15 @@ export function CoachInbox() {
         const initials = data.athleteName
           ? data.athleteName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
           : 'A';
+        const lastReadAt = user ? (data.lastReadBy?.[user.id]?.toMillis?.() || 0) : 0;
+        const lastMsgAt = data.lastMessageAt?.toMillis?.() || 0;
         return {
           id: d.id,
           athleteName: data.athleteName || 'Athlete',
           lastMessage: data.lastMessage || 'No messages yet',
           lastMessageAt: data.lastMessageAt,
           avatar: initials,
+          hasUnread: lastMsgAt > lastReadAt && !!data.lastMessage,
         };
       });
       convos.sort((a, b) => {
@@ -97,15 +101,18 @@ export function CoachInbox() {
                   idx !== filteredConversations.length - 1 ? 'border-b border-gray-100' : ''
                 }`}
               >
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-black flex-shrink-0 bg-[#FFD000]">
+                <div className="relative w-12 h-12 rounded-full flex items-center justify-center text-black flex-shrink-0 bg-[#FFD000]">
                   {conversation.avatar}
+                  {conversation.hasUnread && (
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />
+                  )}
                 </div>
                 <div className="flex-1 text-left overflow-hidden">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-black">{conversation.athleteName}</h4>
+                    <h4 className={conversation.hasUnread ? 'text-black font-semibold' : 'text-black'}>{conversation.athleteName}</h4>
                     <span className="text-sm text-gray-500">{formatTimestamp(conversation.lastMessageAt)}</span>
                   </div>
-                  <p className="text-sm truncate text-gray-500">
+                  <p className={`text-sm truncate ${conversation.hasUnread ? 'text-black font-medium' : 'text-gray-500'}`}>
                     {conversation.lastMessage}
                   </p>
                 </div>

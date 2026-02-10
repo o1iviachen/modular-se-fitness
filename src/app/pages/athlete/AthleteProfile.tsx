@@ -18,6 +18,7 @@ export function AthleteProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState({ completed: 0, streak: 0, thisMonth: 0 });
   const [profile, setProfile] = useState<{ age?: number; gender?: string; weight?: string; height?: string }>({});
+  const [uploading, setUploading] = useState(false);
 
   // Load physical info from Firestore
   useEffect(() => {
@@ -73,12 +74,17 @@ export function AthleteProfile() {
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
-    const storageRef = ref(storage, `profilePhotos/${user.id}`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
-    updateUserPhoto(downloadURL);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `profilePhotos/${user.id}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
+      updateUserPhoto(downloadURL);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const hasPhysicalInfo = profile.age || profile.gender || profile.weight || profile.height;
@@ -98,6 +104,7 @@ export function AthleteProfile() {
         email={user?.email}
         photoURL={user?.photoURL}
         onEditPhoto={handleEditPhoto}
+        uploading={uploading}
       />
 
       {/* Stats */}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
 import { saveWorkout, getWorkout, WorkoutExercise } from '../../lib/workoutService';
-import { isoToDisplayDate } from '../../utils/helpers';
+import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
 
 interface Exercise {
   id: number;
@@ -14,6 +14,7 @@ interface Exercise {
   weight: string;
   notes: string;
   videoUrl?: string;
+  supersetWithPrev: boolean;
 }
 
 export function WorkoutDetail() {
@@ -44,21 +45,22 @@ export function WorkoutDetail() {
           weight: ex.weight,
           notes: ex.notes,
           videoUrl: ex.videoUrl,
+          supersetWithPrev: ex.supersetWithPrev || false,
         }));
         // If exerciseToAdd, append it
         if (exerciseToAdd && !loadedExercises.some(e => e.name === exerciseToAdd.name)) {
-          loadedExercises.push({ ...exerciseToAdd, id: Date.now() });
+          loadedExercises.push({ ...exerciseToAdd, id: Date.now(), supersetWithPrev: false });
         }
         setExercises(loadedExercises);
         setWorkoutNotes(existing.workoutNotes || '');
       } else if (exerciseToAdd) {
-        setExercises([{ ...exerciseToAdd, id: Date.now() }]);
+        setExercises([{ ...exerciseToAdd, id: Date.now(), supersetWithPrev: false }]);
       }
       setLoading(false);
     }).catch((err) => {
       console.error('Failed to load workout:', err);
       if (exerciseToAdd) {
-        setExercises([{ ...exerciseToAdd, id: Date.now() }]);
+        setExercises([{ ...exerciseToAdd, id: Date.now(), supersetWithPrev: false }]);
       }
       setLoading(false);
     });
@@ -73,13 +75,20 @@ export function WorkoutDetail() {
   const handleAddExercise = () => {
     const newExercise: Exercise = {
       id: Date.now(),
-      name: 'New Exercise',
-      sets: '3',
-      reps: '10',
+      name: '',
+      sets: '',
+      reps: '',
       weight: '',
-      notes: ''
+      notes: '',
+      supersetWithPrev: false,
     };
     setExercises([...exercises, newExercise]);
+  };
+
+  const handleToggleSuperset = (id: number) => {
+    setExercises(exercises.map(ex =>
+      ex.id === id ? { ...ex, supersetWithPrev: !ex.supersetWithPrev } : ex
+    ));
   };
 
   const handleDeleteExercise = (id: number) => {
@@ -101,6 +110,7 @@ export function WorkoutDetail() {
         notes: ex.notes,
         videoUrl: ex.videoUrl || '',
         completed: false,
+        supersetWithPrev: ex.supersetWithPrev || false,
       }));
       await saveWorkout(athleteId, workoutDate, firestoreExercises, workoutNotes);
       navigate(-1);
@@ -153,11 +163,34 @@ export function WorkoutDetail() {
         <div className="mb-6">
           <h3 className="font-semibold mb-4">Exercises ({exercises.length})</h3>
           <div className="space-y-3">
-            {exercises.map((exercise) => (
-              <div key={exercise.id} className="bg-white rounded-xl p-4 shadow-sm">
+            {(() => {
+              const labels = getExerciseLabels(exercises);
+              return exercises.map((exercise, idx) => (
+              <div key={exercise.id}>
+                {/* Superset toggle between exercises */}
+                {idx > 0 && (
+                  <button
+                    onClick={() => handleToggleSuperset(exercise.id)}
+                    className={`w-full flex items-center justify-center gap-2 py-1.5 mb-3 rounded-lg text-xs font-medium transition-colors ${
+                      exercise.supersetWithPrev
+                        ? 'text-[#FFD000] bg-[#FFD000]/10'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {exercise.supersetWithPrev ? (
+                      <><Link2 className="w-3.5 h-3.5" /> Supersetted</>
+                    ) : (
+                      <><Unlink className="w-3.5 h-3.5" /> Superset with above</>
+                    )}
+                  </button>
+                )}
+                <div className={`bg-white rounded-xl p-4 shadow-sm ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}>
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="text-gray-400 mt-2">
-                    <GripVertical className="w-4 h-4" />
+                  <div className="flex flex-col items-center gap-1 mt-2">
+                    <div className="w-7 h-7 bg-gray-100 rounded flex items-center justify-center text-xs font-semibold text-gray-700">
+                      {labels[idx]}
+                    </div>
+                    <GripVertical className="w-4 h-4 text-gray-400" />
                   </div>
                   <div className="flex-1">
                     <ExerciseSearchInput
@@ -218,7 +251,9 @@ export function WorkoutDetail() {
                   </button>
                 </div>
               </div>
-            ))}
+              </div>
+              ));
+            })()}
           </div>
 
           <button

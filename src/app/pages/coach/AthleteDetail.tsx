@@ -28,7 +28,7 @@ interface ScheduleDay {
   dateObj: Date;
   workout: string | null;
   completed: boolean;
-  exercises: Array<{ name: string; sets: string }>;
+  exercises: Array<{ name: string; sets: string; supersetWithPrev?: boolean }>;
   isRestDay?: boolean;
 }
 
@@ -157,7 +157,7 @@ export function AthleteDetail() {
               dateObj,
               workout: workout.isRestDay ? 'Rest day' : (workout.exercises.length > 0 ? 'Workout' : null),
               completed: workout.completed,
-              exercises: workout.exercises.map(ex => ({ name: ex.name, sets: ex.sets })),
+              exercises: workout.exercises.map(ex => ({ name: ex.name, sets: ex.sets, supersetWithPrev: ex.supersetWithPrev })),
               isRestDay: workout.isRestDay,
             };
           }

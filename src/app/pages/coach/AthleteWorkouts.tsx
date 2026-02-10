@@ -13,7 +13,7 @@ interface DisplayWorkout {
   day: string;
   workout: string | null;
   completed: boolean;
-  exercises: Array<{ name: string; sets: string }>;
+  exercises: Array<{ name: string; sets: string; supersetWithPrev?: boolean }>;
   isRestDay?: boolean;
 }
 
@@ -56,7 +56,7 @@ export function AthleteWorkouts() {
         day: isoToDayName(w.date),
         workout: w.isRestDay ? 'Rest day' : (w.exercises.length > 0 ? 'Workout' : null),
         completed: w.completed,
-        exercises: w.exercises.map(ex => ({ name: ex.name, sets: ex.sets })),
+        exercises: w.exercises.map(ex => ({ name: ex.name, sets: ex.sets, supersetWithPrev: ex.supersetWithPrev })),
         isRestDay: w.isRestDay,
       }));
       setAllWorkouts(display);

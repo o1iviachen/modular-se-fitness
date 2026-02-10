@@ -4,16 +4,19 @@ import { ArrowLeft, Check, MessageSquare } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
 import { useAuth } from '../../context/AuthContext';
 import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, WorkoutExercise } from '../../lib/workoutService';
-import { isoToDisplayDate, isoToDayName } from '../../utils/helpers';
+import { isoToDisplayDate, isoToDayName, getExerciseLabels } from '../../utils/helpers';
 
 interface Exercise {
   id: string;
   letter: string;
-  type: string;
   name: string;
   sets: string;
+  reps: string;
+  weight: string;
+  notes: string;
   videoUrl?: string;
   completed: boolean;
+  supersetWithPrev?: boolean;
 }
 
 export function AthleteWorkoutDetail() {
@@ -39,14 +42,18 @@ export function AthleteWorkoutDetail() {
 
     getWorkout(user.id, dateString).then((workout) => {
       if (workout && workout.exercises.length > 0) {
+        const labels = getExerciseLabels(workout.exercises);
         const loaded: Exercise[] = workout.exercises.map((ex, i) => ({
           id: String(i),
-          letter: String.fromCharCode(65 + i),
-          type: 'SINGLE',
+          letter: labels[i],
           name: ex.name,
           sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight,
+          notes: ex.notes,
           videoUrl: ex.videoUrl,
           completed: ex.completed,
+          supersetWithPrev: ex.supersetWithPrev,
         }));
         setExercises(loaded);
         setWorkoutNotes(workout.workoutNotes || '');
@@ -149,16 +156,16 @@ export function AthleteWorkoutDetail() {
 
       {/* Exercises */}
       <div className="px-4 pt-4 space-y-4 pb-2">{exercises.map((exercise) => (
-        <div key={exercise.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div key={exercise.id} className={`bg-white rounded-2xl shadow-sm overflow-hidden ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}>
           {/* Exercise Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">{exercise.type}</span>
+              <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-xs font-semibold text-gray-700">{exercise.letter}</span>
+              </div>
+              <span className="text-sm font-medium text-gray-700">{exercise.name}</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-700">{exercise.letter}</span>
-              </div>
               <button
                 onClick={() => toggleExerciseComplete(exercise.id)}
                 className="transition-colors"
@@ -189,11 +196,25 @@ export function AthleteWorkoutDetail() {
               </div>
             )}
 
-            {/* Instructions */}
-            <div className="mb-3">
-              <h4 className="text-black font-medium mb-2">Instructions</h4>
-              <p className="text-gray-700 text-sm">{exercise.sets}</p>
-            </div>
+            {/* Sets x Reps summary */}
+            {(exercise.sets || exercise.reps) && (
+              <p className="text-gray-500 text-sm mb-3">
+                {exercise.sets && exercise.reps
+                  ? `${exercise.sets} x ${exercise.reps}`
+                  : exercise.sets
+                    ? `${exercise.sets} sets`
+                    : `${exercise.reps} reps`}
+                {exercise.weight ? ` @ ${exercise.weight}` : ''}
+              </p>
+            )}
+
+            {/* Coach Notes */}
+            {exercise.notes && (
+              <div className="mb-3">
+                <h4 className="text-black font-medium mb-2">Coach Notes</h4>
+                <p className="text-gray-700 text-sm">{exercise.notes}</p>
+              </div>
+            )}
 
             {/* Add Results Button */}
             <button
@@ -315,10 +336,30 @@ function ExerciseDetailView({
 
       {/* Content */}
       <div className="px-4 py-6">
-        {/* Instructions */}
+        {/* Exercise Info */}
         <div className="bg-white rounded-xl p-4 mb-6">
-          <h2 className="text-black text-lg font-semibold mb-3">Instructions</h2>
-          <p className="text-gray-800">{exercise.sets}</p>
+          {(exercise.sets || exercise.reps) && (
+            <div className="mb-3">
+              <h2 className="text-black text-lg font-semibold mb-1">Prescription</h2>
+              <p className="text-gray-800">
+                {exercise.sets && exercise.reps
+                  ? `${exercise.sets} x ${exercise.reps}`
+                  : exercise.sets
+                    ? `${exercise.sets} sets`
+                    : `${exercise.reps} reps`}
+                {exercise.weight ? ` @ ${exercise.weight}` : ''}
+              </p>
+            </div>
+          )}
+          {exercise.notes && (
+            <div>
+              <h2 className="text-black text-lg font-semibold mb-1">Coach Notes</h2>
+              <p className="text-gray-800">{exercise.notes}</p>
+            </div>
+          )}
+          {!exercise.sets && !exercise.reps && !exercise.notes && (
+            <p className="text-gray-500">No instructions provided</p>
+          )}
         </div>
 
         {/* Your Result */}

@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { AuthContainer } from '../components/ui/auth-container';
 import { PrimaryButton } from '../components/ui/primary-button';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
 
@@ -35,6 +41,88 @@ export function Login() {
       setError('Google login failed');
     }
   };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetSent(true);
+    } catch {
+      setError('Could not send reset email. Please check the address.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  if (resetMode) {
+    return (
+      <AuthContainer>
+        {resetSent ? (
+          <div className="text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-[#FFD000] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-white text-xl font-semibold mb-2">Check Your Email</h2>
+              <p className="text-gray-400 text-sm">
+                We sent a password reset link to <span className="text-white">{resetEmail}</span>
+              </p>
+            </div>
+            <button
+              onClick={() => { setResetMode(false); setResetSent(false); setResetEmail(''); }}
+              className="text-[#FFD000] hover:underline"
+            >
+              Back to Login
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-white text-xl font-semibold mb-2 text-center">Reset Password</h2>
+            <p className="text-gray-400 text-sm mb-6 text-center">
+              Enter your email and we'll send you a reset link
+            </p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-500 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <input
+                type="email"
+                placeholder="Email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                className="w-full p-4 bg-white rounded-lg text-black placeholder-gray-500"
+                required
+              />
+              <PrimaryButton
+                type="submit"
+                disabled={resetLoading}
+                className="w-full p-4 bg-[#FFD000] text-black rounded-lg hover:bg-[#FFD000]/90 transition-colors disabled:opacity-50"
+              >
+                {resetLoading ? 'Sending...' : 'Send Reset Link'}
+              </PrimaryButton>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => { setResetMode(false); setError(''); }}
+                className="text-[#FFD000] hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
+          </>
+        )}
+      </AuthContainer>
+    );
+  }
 
   return (
     <AuthContainer>
@@ -65,6 +153,16 @@ export function Login() {
             className="w-full p-4 bg-white rounded-lg text-black placeholder-gray-500"
             required
           />
+        </div>
+
+        <div className="text-right">
+          <button
+            type="button"
+            onClick={() => { setResetMode(true); setResetEmail(email); setError(''); }}
+            className="text-gray-400 text-sm hover:text-[#FFD000] transition-colors"
+          >
+            Forgot Password?
+          </button>
         </div>
 
         <PrimaryButton

@@ -49,7 +49,7 @@ export function Messages() {
     fetchConvo();
   }, [chatId, user]);
 
-  // Listen to messages in real-time
+  // Listen to messages in real-time and mark as read
   useEffect(() => {
     if (!chatId || !user) return;
     const q = query(
@@ -70,6 +70,11 @@ export function Messages() {
         } as ChatMessage;
       });
       setMessages(msgs);
+
+      // Mark conversation as read
+      updateDoc(doc(db, 'conversations', chatId), {
+        [`lastReadBy.${user.id}`]: serverTimestamp(),
+      }).catch(() => {});
     });
     return unsubscribe;
   }, [chatId, user]);

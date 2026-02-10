@@ -1,17 +1,55 @@
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { exerciseLibrary } from '../../data/exerciseLibrary';
+import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
 
 export function ExerciseDetail() {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [customExercise, setCustomExercise] = useState<LibraryExercise | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const exercise = exerciseLibrary.find(ex => ex.id === Number(exerciseId));
+  // Try static library first
+  const staticExercise = exerciseLibrary.find(ex => ex.id === Number(exerciseId));
+
+  // If not found in static library, try Firestore custom exercises
+  useEffect(() => {
+    if (staticExercise || !exerciseId || !user?.id) return;
+    setLoading(true);
+    getDoc(doc(db, 'users', user.id, 'customExercises', exerciseId)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setCustomExercise({
+          id: snap.id as any,
+          name: data.name,
+          source: 'custom',
+          category: data.category,
+          equipment: data.equipment || 'Bodyweight',
+          description: data.description,
+          videoUrl: data.videoUrl || undefined,
+        });
+      }
+      setLoading(false);
+    });
+  }, [exerciseId, user?.id, staticExercise]);
+
+  const exercise = staticExercise || customExercise;
+
+  if (loading) {
+    return (
+      <div className="min-h-full bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
 
   if (!exercise) {
     return (

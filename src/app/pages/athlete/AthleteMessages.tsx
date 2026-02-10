@@ -12,6 +12,7 @@ interface Conversation {
   lastMessage: string;
   lastMessageAt: any;
   avatar: string;
+  hasUnread: boolean;
 }
 
 export function AthleteMessages() {
@@ -28,12 +29,15 @@ export function AthleteMessages() {
         const initials = data.coachName
           ? data.coachName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
           : 'C';
+        const lastReadAt = data.lastReadBy?.[user.id]?.toMillis?.() || 0;
+        const lastMsgAt = data.lastMessageAt?.toMillis?.() || 0;
         return {
           id: d.id,
           coachName: data.coachName || 'Coach',
           lastMessage: data.lastMessage || 'No messages yet',
           lastMessageAt: data.lastMessageAt,
           avatar: initials,
+          hasUnread: lastMsgAt > lastReadAt && !!data.lastMessage,
         };
       });
       setConversations(convos);
@@ -69,15 +73,18 @@ export function AthleteMessages() {
                 onClick={() => navigate(`/athlete/messages/${convo.id}`)}
                 className="w-full px-5 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="w-12 h-12 bg-[#FFD000] rounded-full flex items-center justify-center text-black flex-shrink-0">
+                <div className="relative w-12 h-12 bg-[#FFD000] rounded-full flex items-center justify-center text-black flex-shrink-0">
                   {convo.avatar}
+                  {convo.hasUnread && (
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />
+                  )}
                 </div>
                 <div className="flex-1 text-left overflow-hidden">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-black">{convo.coachName}</h4>
+                    <h4 className={convo.hasUnread ? 'text-black font-semibold' : 'text-black'}>{convo.coachName}</h4>
                     <span className="text-sm text-gray-500">{formatTimestamp(convo.lastMessageAt)}</span>
                   </div>
-                  <p className="text-gray-500 truncate">{convo.lastMessage}</p>
+                  <p className={`truncate ${convo.hasUnread ? 'text-black font-medium' : 'text-gray-500'}`}>{convo.lastMessage}</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
               </button>

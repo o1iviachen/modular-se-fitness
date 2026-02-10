@@ -15,6 +15,7 @@ export interface WorkoutExercise {
   notes: string;
   videoUrl?: string;
   completed: boolean;
+  supersetWithPrev?: boolean;
 }
 
 export interface WorkoutDoc {

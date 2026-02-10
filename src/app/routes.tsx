@@ -168,6 +168,10 @@ export const router = createBrowserRouter([
         element: <CreateExercise />
       },
       {
+        path: 'edit-exercise/:exerciseId',
+        element: <CreateExercise />
+      },
+      {
         path: 'library',
         element: <CoachLibrary />
       },

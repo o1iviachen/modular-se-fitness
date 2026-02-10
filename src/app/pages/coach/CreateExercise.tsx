@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 
 export function CreateExercise() {
   const navigate = useNavigate();
+  const { exerciseId } = useParams();
+  const isEditMode = !!exerciseId;
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +19,25 @@ export function CreateExercise() {
     videoUrl: ''
   });
   const [saving, setSaving] = useState(false);
+  const [loadingExercise, setLoadingExercise] = useState(isEditMode);
+
+  // Load existing exercise data in edit mode
+  useEffect(() => {
+    if (!isEditMode || !user?.id || !exerciseId) return;
+    getDoc(doc(db, 'users', user.id, 'customExercises', exerciseId)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setFormData({
+          name: data.name || '',
+          category: data.category || '',
+          equipment: data.equipment || '',
+          description: data.description || '',
+          videoUrl: data.videoUrl || '',
+        });
+      }
+      setLoadingExercise(false);
+    });
+  }, [isEditMode, user?.id, exerciseId]);
 
   const categories = [
     'Strength',
@@ -34,18 +55,29 @@ export function CreateExercise() {
     if (!user?.id || saving) return;
     setSaving(true);
     try {
-      await addDoc(collection(db, 'users', user.id, 'customExercises'), {
-        name: formData.name,
-        category: formData.category,
-        equipment: formData.equipment || 'Bodyweight',
-        description: formData.description,
-        videoUrl: formData.videoUrl || null,
-        source: 'custom',
-        createdAt: serverTimestamp(),
-      });
+      if (isEditMode && exerciseId) {
+        await updateDoc(doc(db, 'users', user.id, 'customExercises', exerciseId), {
+          name: formData.name,
+          category: formData.category,
+          equipment: formData.equipment || 'Bodyweight',
+          description: formData.description,
+          videoUrl: formData.videoUrl || null,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(db, 'users', user.id, 'customExercises'), {
+          name: formData.name,
+          category: formData.category,
+          equipment: formData.equipment || 'Bodyweight',
+          description: formData.description,
+          videoUrl: formData.videoUrl || null,
+          source: 'custom',
+          createdAt: serverTimestamp(),
+        });
+      }
       navigate('/coach/library');
     } catch (err) {
-      console.error('Failed to create exercise:', err);
+      console.error('Failed to save exercise:', err);
       setSaving(false);
     }
   };
@@ -53,6 +85,14 @@ export function CreateExercise() {
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
+
+  if (loadingExercise) {
+    return (
+      <div className="min-h-full bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
@@ -65,8 +105,8 @@ export function CreateExercise() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
-        <h1 className="text-xl font-semibold mb-1">Create Custom Exercise</h1>
-        <p className="text-gray-400 text-sm">Add a new exercise to your library</p>
+        <h1 className="text-xl font-semibold mb-1">{isEditMode ? 'Edit Exercise' : 'Create Custom Exercise'}</h1>
+        <p className="text-gray-400 text-sm">{isEditMode ? 'Update your custom exercise' : 'Add a new exercise to your library'}</p>
       </div>
 
       {/* Form */}
@@ -158,7 +198,7 @@ export function CreateExercise() {
             disabled={saving}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50"
           >
-            {saving ? 'Creating...' : 'Create Exercise'}
+            {saving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Exercise'}
           </button>
           <button
             type="button"
