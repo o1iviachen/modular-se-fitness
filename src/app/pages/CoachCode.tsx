@@ -71,9 +71,6 @@ export function CoachCode() {
         </PrimaryButton>
       </form>
 
-      <div className="mt-6 text-center text-sm text-gray-500">
-        Demo code: SE2024
-      </div>
     </AuthContainer>
   );
 }

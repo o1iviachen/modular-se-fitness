@@ -135,17 +135,17 @@ export function CreateExercise() {
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
+            type="submit"
+            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
+          >
+            Create Exercise
+          </button>
+          <button
             type="button"
             onClick={() => navigate('/coach/library')}
             className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
           >
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
-          >
-            Create Exercise
           </button>
         </div>
       </form>

@@ -16,7 +16,8 @@ export function CoachEmailSupport() {
   };
 
   const handleSubmit = () => {
-    // In a real app, this would send the email
+    const mailto = `mailto:olivia63chen@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(formData.message)}`;
+    window.open(mailto, '_blank');
     setSubmitted(true);
     setTimeout(() => {
       navigate(-1);
@@ -82,18 +83,17 @@ export function CoachEmailSupport() {
 
             <div className="flex gap-3 mt-6">
               <button
+                onClick={handleSubmit}
+                disabled={!formData.subject || !formData.message}
+                className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Send Message
+              </button>
+              <button
                 onClick={() => navigate(-1)}
                 className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!formData.subject || !formData.message}
-                className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-5 h-5" />
-                Send Message
               </button>
             </div>
           </div>

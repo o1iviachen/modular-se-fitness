@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export function PersonalInfo() {
   const navigate = useNavigate();
@@ -11,18 +13,49 @@ export function PersonalInfo() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: '(555) 123-4567',
-    dateOfBirth: '1995-06-15',
-    height: '5\'10"',
-    weight: '175 lbs',
-    emergencyContact: 'Jane Doe',
-    emergencyPhone: '(555) 987-6543'
+    dateOfBirth: '',
+    height: '',
+    weight: '',
+    emergencyContact: '',
+    emergencyPhone: ''
   });
+  const [loaded, setLoaded] = useState(false);
 
-  const handleSave = () => {
-    // Save logic here
+  useEffect(() => {
+    if (!user?.id) return;
+    getDoc(doc(db, 'users', user.id)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setInfo({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          dateOfBirth: data.dateOfBirth || '',
+          height: data.height != null ? String(data.height) : '',
+          weight: data.weight != null ? String(data.weight) : '',
+          emergencyContact: data.emergencyContact || '',
+          emergencyPhone: data.emergencyPhone || '',
+        });
+      }
+      setLoaded(true);
+    });
+  }, [user?.id]);
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    await updateDoc(doc(db, 'users', user.id), {
+      firstName: info.firstName,
+      lastName: info.lastName,
+      dateOfBirth: info.dateOfBirth || null,
+      height: info.height || null,
+      weight: info.weight || null,
+      emergencyContact: info.emergencyContact || null,
+      emergencyPhone: info.emergencyPhone || null,
+    });
     navigate(-1);
   };
+
+  if (!loaded) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,18 +100,8 @@ export function PersonalInfo() {
             <input
               type="email"
               value={info.email}
-              onChange={(e) => setInfo({ ...info, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Phone</label>
-            <input
-              type="tel"
-              value={info.phone}
-              onChange={(e) => setInfo({ ...info, phone: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
+              disabled
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500"
             />
           </div>
 
@@ -94,20 +117,22 @@ export function PersonalInfo() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Height</label>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Height (cm)</label>
               <input
-                type="text"
+                type="number"
                 value={info.height}
                 onChange={(e) => setInfo({ ...info, height: e.target.value })}
+                placeholder="e.g. 175"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Weight</label>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Weight (kg)</label>
               <input
-                type="text"
+                type="number"
                 value={info.weight}
                 onChange={(e) => setInfo({ ...info, weight: e.target.value })}
+                placeholder="e.g. 75"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
               />
             </div>

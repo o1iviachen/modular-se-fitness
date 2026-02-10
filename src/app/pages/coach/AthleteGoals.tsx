@@ -4,29 +4,19 @@ import { ArrowLeft, Plus, Trash2, Check, Edit2 } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-
-interface Goal {
-  id: number;
-  title: string;
-  target: string;
-  deadline: string;
-  completed: boolean;
-}
+import { subscribeToGoals, addGoal, deleteGoal, updateGoal, Goal } from '../../lib/goalService';
 
 export function AthleteGoals() {
   const { athleteId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const routeState = location.state as { athleteName?: string } | null;
+  const routeState = location.state as { athleteName?: string; isArchived?: boolean } | null;
+  const isArchived = routeState?.isArchived ?? false;
 
   const [athleteName, setAthleteName] = useState(routeState?.athleteName ?? '');
   const [loading, setLoading] = useState(!routeState?.athleteName);
 
-  const [goals, setGoals] = useState<Goal[]>([
-    { id: 1, title: 'Build muscle and increase strength', target: '175 lbs', deadline: '6 months', completed: false },
-    { id: 2, title: 'Run a 5K under 25 minutes', target: '24:30', deadline: '3 months', completed: false },
-    { id: 3, title: 'Master proper squat form', target: 'Form check', deadline: '1 month', completed: true }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', target: '', deadline: '' });
 
@@ -42,26 +32,27 @@ export function AthleteGoals() {
     }).catch(() => setLoading(false));
   }, [athleteId]);
 
-  const handleAddGoal = () => {
-    if (newGoal.title.trim() && newGoal.target.trim() && newGoal.deadline.trim()) {
-      setGoals([...goals, {
-        id: Date.now(),
-        ...newGoal,
-        completed: false
-      }]);
-      setNewGoal({ title: '', target: '', deadline: '' });
-      setIsAddingGoal(false);
-    }
+  // Subscribe to goals
+  useEffect(() => {
+    if (!athleteId) return;
+    return subscribeToGoals(athleteId, setGoals);
+  }, [athleteId]);
+
+  const handleAddGoal = async () => {
+    if (!athleteId || !newGoal.title.trim() || !newGoal.target.trim() || !newGoal.deadline.trim()) return;
+    await addGoal(athleteId, newGoal);
+    setNewGoal({ title: '', target: '', deadline: '' });
+    setIsAddingGoal(false);
   };
 
-  const handleDeleteGoal = (id: number) => {
-    setGoals(goals.filter(g => g.id !== id));
+  const handleDeleteGoal = (id: string) => {
+    if (!athleteId) return;
+    deleteGoal(athleteId, id);
   };
 
-  const handleToggleComplete = (id: number) => {
-    setGoals(goals.map(g =>
-      g.id === id ? { ...g, completed: !g.completed } : g
-    ));
+  const handleToggleComplete = (goal: Goal) => {
+    if (!athleteId) return;
+    updateGoal(athleteId, goal.id, { completed: !goal.completed });
   };
 
   const handleEditGoal = (goal: Goal) => {
@@ -91,12 +82,14 @@ export function AthleteGoals() {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <button
-            onClick={() => setIsAddingGoal(true)}
-            className="w-10 h-10 bg-[#FFD000] text-black rounded-full flex items-center justify-center hover:bg-[#FFD000]/90 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {!isArchived && (
+            <button
+              onClick={() => setIsAddingGoal(true)}
+              className="w-10 h-10 bg-[#FFD000] text-black rounded-full flex items-center justify-center hover:bg-[#FFD000]/90 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">{athleteName}'s Goals</h1>
@@ -173,16 +166,18 @@ export function AthleteGoals() {
               }`}
             >
               <div className="flex items-start gap-3">
-                <button
-                  onClick={() => handleToggleComplete(goal.id)}
-                  className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    goal.completed
-                      ? 'bg-green-500 border-green-500'
-                      : 'border-gray-300 hover:border-[#FFD000]'
-                  }`}
-                >
-                  {goal.completed && <Check className="w-4 h-4 text-white" />}
-                </button>
+                {!isArchived && (
+                  <button
+                    onClick={() => handleToggleComplete(goal)}
+                    className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      goal.completed
+                        ? 'bg-green-500 border-green-500'
+                        : 'border-gray-300 hover:border-[#FFD000]'
+                    }`}
+                  >
+                    {goal.completed && <Check className="w-4 h-4 text-white" />}
+                  </button>
+                )}
                 <div className="flex-1">
                   <h3 className={`font-medium mb-2 text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-black'}`}>
                     {goal.title}
@@ -198,20 +193,22 @@ export function AthleteGoals() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleEditGoal(goal)}
-                    className="text-gray-400 hover:text-[#FFD000] transition-colors p-1"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteGoal(goal.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {!isArchived && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleEditGoal(goal)}
+                      className="text-gray-400 hover:text-[#FFD000] transition-colors p-1"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGoal(goal.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

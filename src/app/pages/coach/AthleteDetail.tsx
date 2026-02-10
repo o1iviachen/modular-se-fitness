@@ -1,12 +1,12 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
 import { WorkoutCard } from '../../components/WorkoutCard';
-import { getCurrentWeekDates, isoToDisplayDate } from '../../utils/helpers';
-import { doc, getDoc } from 'firebase/firestore';
+import { getCurrentWeekDates, isoToDisplayDate, getTodayISO } from '../../utils/helpers';
+import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { subscribeToWorkoutsInRange, setRestDay as firestoreSetRestDay } from '../../lib/workoutService';
+import { subscribeToWorkoutsInRange, subscribeToAllWorkouts, setRestDay as firestoreSetRestDay, WorkoutDoc } from '../../lib/workoutService';
 
 interface AthleteProfile {
   id: string;
@@ -54,6 +54,57 @@ export function AthleteDetail() {
       exercises: [],
     }));
   });
+
+  // Stats computed from real workout data
+  const [stats, setStats] = useState({ workoutsCompleted: 0, workoutCompletionRate: 0, streak: 0, lastWorkoutDate: '' });
+  const prevStatsRef = useRef('');
+
+  // Subscribe to ALL workouts to compute stats
+  useEffect(() => {
+    if (!athleteId) return;
+    return subscribeToAllWorkouts(athleteId, (workouts: WorkoutDoc[]) => {
+      const todayISO = getTodayISO();
+      // Only count non-rest-day workouts that are on or before today
+      const pastWorkouts = workouts.filter(w => w.date <= todayISO && !w.isRestDay);
+      const completedCount = pastWorkouts.filter(w => w.completed).length;
+      const totalCount = pastWorkouts.length;
+      const rate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+      // Streak: consecutive completed workouts going backward from most recent
+      // Only counts assigned workout days (ignores calendar gaps and rest days)
+      const pastAssigned = workouts
+        .filter(w => w.date <= todayISO && !w.isRestDay)
+        .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+      let streak = 0;
+      for (const w of pastAssigned) {
+        if (w.completed) streak++;
+        else break;
+      }
+
+      // Last workout date: most recent completed non-rest-day workout
+      const lastCompleted = pastAssigned.find(w => w.completed);
+      const lastWorkoutDate = lastCompleted?.date ?? '';
+
+      setStats({ workoutsCompleted: completedCount, workoutCompletionRate: rate, streak, lastWorkoutDate });
+    });
+  }, [athleteId]);
+
+  // Persist computed stats to user profile so CoachHome stays accurate
+  useEffect(() => {
+    if (!athleteId) return;
+    const key = JSON.stringify(stats);
+    if (key === prevStatsRef.current) return;
+    prevStatsRef.current = key;
+    const updates: Record<string, any> = {
+      workoutsCompleted: stats.workoutsCompleted,
+      workoutCompletionRate: stats.workoutCompletionRate,
+      streak: stats.streak,
+    };
+    if (stats.lastWorkoutDate) {
+      updates.lastWorkoutDate = Timestamp.fromDate(new Date(stats.lastWorkoutDate + 'T12:00:00'));
+    }
+    updateDoc(doc(db, 'users', athleteId), updates).catch(() => {});
+  }, [athleteId, stats]);
 
   // Fetch athlete profile
   useEffect(() => {
@@ -174,15 +225,15 @@ export function AthleteDetail() {
       {/* Stats Cards */}
       <div className="px-6 -mt-4 mb-6 grid grid-cols-3 gap-3">
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{athlete.workoutsCompleted}</div>
+          <div className="text-2xl mb-1">{stats.workoutsCompleted}</div>
           <div className="text-xs text-gray-500">Workouts</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{athlete.workoutCompletionRate}%</div>
+          <div className="text-2xl mb-1">{stats.workoutCompletionRate}%</div>
           <div className="text-xs text-gray-500">Completion</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{athlete.streak}</div>
+          <div className="text-2xl mb-1">{stats.streak}</div>
           <div className="text-xs text-gray-500">Day Streak</div>
         </div>
       </div>
@@ -201,11 +252,11 @@ export function AthleteDetail() {
           </div>
           <div className="p-4 flex justify-between">
             <span className="text-gray-600">Weight</span>
-            <span className="text-gray-900">{athlete.weight ?? '—'}</span>
+            <span className="text-gray-900">{athlete.weight ? `${athlete.weight} kg` : '—'}</span>
           </div>
           <div className="p-4 flex justify-between">
             <span className="text-gray-600">Height</span>
-            <span className="text-gray-900">{athlete.height ?? '—'}</span>
+            <span className="text-gray-900">{athlete.height ? `${athlete.height} cm` : '—'}</span>
           </div>
         </div>
       </div>
@@ -242,7 +293,7 @@ export function AthleteDetail() {
       {/* Quick Actions */}
       <div className="px-6 grid grid-cols-2 gap-3">
         <button
-          onClick={() => navigate(`/coach/athlete/${athleteId}/goals`, { state: { athleteName: athlete.name } })}
+          onClick={() => navigate(`/coach/athlete/${athleteId}/goals`, { state: { athleteName: athlete.name, isArchived: athlete.isArchived } })}
           className="bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
         >
           <div className="text-left">
@@ -251,7 +302,7 @@ export function AthleteDetail() {
           </div>
         </button>
         <button
-          onClick={() => navigate(`/coach/athlete/${athleteId}/documents`, { state: { athleteName: athlete.name } })}
+          onClick={() => navigate(`/coach/athlete/${athleteId}/documents`, { state: { athleteName: athlete.name, isArchived: athlete.isArchived } })}
           className="bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
         >
           <div className="text-left">

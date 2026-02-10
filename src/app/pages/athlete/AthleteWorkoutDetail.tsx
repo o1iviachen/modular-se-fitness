@@ -299,8 +299,7 @@ function ExerciseDetailView({
   const [isComplete, setIsComplete] = useState(exercise.completed);
 
   const handleToggleComplete = () => {
-    const newCompleteState = !isComplete;
-    setIsComplete(newCompleteState);
+    setIsComplete(!isComplete);
     onToggleComplete(exercise.id);
   };
 

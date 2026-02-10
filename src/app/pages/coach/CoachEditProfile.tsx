@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export function CoachEditProfile() {
   const navigate = useNavigate();
@@ -12,20 +14,38 @@ export function CoachEditProfile() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: '',
-    bio: '',
-    certifications: '',
-    specialties: ''
   });
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getDoc(doc(db, 'users', user.id)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setFormData({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+        });
+      }
+      setLoaded(true);
+    });
+  }, [user?.id]);
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSave = () => {
-    // Save logic here
+  const handleSave = async () => {
+    if (!user?.id) return;
+    await updateDoc(doc(db, 'users', user.id), {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+    });
     navigate(-1);
   };
+
+  if (!loaded) return null;
 
   return (
     <div className="min-h-full bg-gray-50">
@@ -65,52 +85,8 @@ export function CoachEditProfile() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 shadow-sm">
-            <h3 className="font-semibold mb-4">Professional Information</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Bio</label>
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => handleChange('bio', e.target.value)}
-                  placeholder="Tell athletes about yourself..."
-                  className="w-full bg-gray-50 rounded-lg px-4 py-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-[#FFD000] resize-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Certifications</label>
-                <input
-                  type="text"
-                  value={formData.certifications}
-                  onChange={(e) => handleChange('certifications', e.target.value)}
-                  placeholder="e.g., CSCS, NASM-CPT"
-                  className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Specialties</label>
-                <input
-                  type="text"
-                  value={formData.specialties}
-                  onChange={(e) => handleChange('specialties', e.target.value)}
-                  placeholder="e.g., Strength Training, Olympic Lifting"
-                  className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
+                  disabled
+                  className="w-full bg-gray-100 rounded-lg px-4 py-3 text-gray-500"
                 />
               </div>
             </div>

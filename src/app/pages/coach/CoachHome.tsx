@@ -201,7 +201,10 @@ export function CoachHome() {
                 lastWorkout={athlete.lastWorkout}
                 streak={athlete.streak}
                 isArchived={athlete.isArchived}
-                onClick={() => navigate(`/coach/athlete/${athlete.id}`, { state: { id: athlete.id, name: athlete.name, email: athlete.email, age: athlete.age, gender: athlete.gender, weight: athlete.weight, height: athlete.height, streak: athlete.streak, workoutsCompleted: athlete.workoutsCompleted, workoutCompletionRate: athlete.workoutCompletionRate, isArchived: athlete.isArchived } })}
+                onClick={() => {
+                  const { lastWorkoutDate, createdAt, lastWorkout, tenureMonths, ...athleteState } = athlete;
+                  navigate(`/coach/athlete/${athlete.id}`, { state: athleteState });
+                }}
                 onArchiveClick={(e) => handleArchive(e, athlete.id)}
                 onReactivateClick={(e) => handleReactivate(e, athlete.id)}
               />

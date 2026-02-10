@@ -1,32 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, FileText, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Download } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-
-interface Document {
-  id: number;
-  name: string;
-  date: string;
-  size: string;
-}
+import { useAuth } from '../../context/AuthContext';
+import { subscribeToDocuments, formatFileSize, DocumentItem } from '../../lib/documentService';
 
 export function Documents() {
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState<Document[]>([
-    { id: 1, name: 'Nutrition Guide', date: 'Jan 28, 2026', size: '2.4 MB' },
-    { id: 2, name: 'Training Plan - Q1 2026', date: 'Jan 15, 2026', size: '1.8 MB' },
-    { id: 3, name: 'Progress Photos Guide', date: 'Jan 10, 2026', size: '890 KB' },
-    { id: 4, name: 'Meal Prep Guidelines', date: 'Jan 5, 2026', size: '1.2 MB' },
-    { id: 5, name: 'Recovery Protocols', date: 'Dec 28, 2025', size: '3.1 MB' }
-  ]);
+  const { user } = useAuth();
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
 
-  const handleDownload = (doc: Document) => {
-    // Handle download logic
-  };
-
-  const handleDelete = (id: number) => {
-    setDocuments(documents.filter(d => d.id !== id));
-  };
+  useEffect(() => {
+    if (!user?.id) return;
+    return subscribeToDocuments(user.id, setDocuments);
+  }, [user?.id]);
 
   return (
     <div className="min-h-full bg-gray-50">
@@ -45,40 +32,43 @@ export function Documents() {
 
       {/* Content */}
       <div className="px-6 py-6">
-        <div className="space-y-3">
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-white rounded-xl p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="w-12 h-12 bg-[#FFD000]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-6 h-6 text-[#FFD000]" />
+        {documents.length > 0 ? (
+          <div className="space-y-3">
+            {documents.map((d) => (
+              <div
+                key={d.id}
+                className="bg-white rounded-xl p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-12 h-12 bg-[#FFD000]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-6 h-6 text-[#FFD000]" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-black mb-1">{d.name}</h3>
+                      <p className="text-sm text-gray-500">
+                        {d.createdAt ? d.createdAt.toDate().toLocaleDateString() : ''}
+                        {' '}&bull; {formatFileSize(d.size)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-black mb-1">{doc.name}</h3>
-                    <p className="text-sm text-gray-500">{doc.date} • {doc.size}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleDownload(doc)}
+                  <a
+                    href={d.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-[#FFD000] transition-colors p-1"
                   >
                     <Download className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  </a>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl p-8 text-center">
+            <p className="text-gray-500">No documents yet</p>
+          </div>
+        )}
       </div>
     </div>
   );

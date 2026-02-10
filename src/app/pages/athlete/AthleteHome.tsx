@@ -1,11 +1,11 @@
 import { useAuth } from '../../context/AuthContext';
-import { ChevronRight, Check, X, ChevronLeft } from 'lucide-react';
+import { ChevronRight, Check, X, ChevronLeft, CalendarX } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { usePageState } from '../../hooks/usePageState';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { subscribeToAllWorkouts, WorkoutDoc } from '../../lib/workoutService';
-import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate } from '../../utils/helpers';
+import { subscribeToAllWorkouts } from '../../lib/workoutService';
+import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, filterWorkoutsByMonth, getExerciseLetter } from '../../utils/helpers';
 
 // Helper to get time-based greeting
 const getGreeting = () => {
@@ -55,40 +55,11 @@ export function AthleteHome() {
     return unsubscribe;
   }, [user?.id]);
 
-  // Helper functions for month navigation
-  const getMonthName = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
-
-  const goToPreviousMonth = () => {
-    const newMonth = new Date(selectedMonth);
-    newMonth.setMonth(newMonth.getMonth() - 1);
-    setSelectedMonth(newMonth);
-  };
-
-  const goToNextMonth = () => {
-    const newMonth = new Date(selectedMonth);
-    newMonth.setMonth(newMonth.getMonth() + 1);
-    // Don't go beyond current month
-    if (newMonth <= currentMonth) {
-      setSelectedMonth(newMonth);
-    }
-  };
-
-  const isCurrentMonth = () => {
-    return selectedMonth.getMonth() === currentMonth.getMonth() &&
-           selectedMonth.getFullYear() === currentMonth.getFullYear();
-  };
+  const isCurrentMonth = isSameMonth(selectedMonth, currentMonth);
 
   // Filter workouts
   const todayWorkout = allWorkouts.find(w => w.date === todayISO);
-
-  // Filter workouts by selected month (only for Past tab)
-  const workoutsInSelectedMonth = allWorkouts.filter(w => {
-    const d = parseISODate(w.date);
-    return d.getMonth() === selectedMonth.getMonth() &&
-           d.getFullYear() === selectedMonth.getFullYear();
-  });
+  const workoutsInSelectedMonth = filterWorkoutsByMonth(allWorkouts, selectedMonth);
 
   const upcomingWorkouts = allWorkouts.filter(w => w.date > todayISO);
   const pastWorkouts = workoutsInSelectedMonth.filter(w => w.date < todayISO);
@@ -133,21 +104,21 @@ export function AthleteHome() {
       {activeTab === 'past' && (
         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <button
-            onClick={goToPreviousMonth}
+            onClick={() => setSelectedMonth(getPreviousMonth(selectedMonth))}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
 
           <h2 className="text-lg font-medium text-gray-900">
-            {getMonthName(selectedMonth)}
+            {formatMonthYear(selectedMonth)}
           </h2>
 
           <button
-            onClick={goToNextMonth}
-            disabled={isCurrentMonth()}
+            onClick={() => setSelectedMonth(getNextMonth(selectedMonth))}
+            disabled={isCurrentMonth}
             className={`p-2 rounded-lg transition-colors ${
-              isCurrentMonth()
+              isCurrentMonth
                 ? 'text-gray-300 cursor-not-allowed'
                 : 'hover:bg-gray-100 text-gray-700'
             }`}
@@ -188,7 +159,7 @@ export function AthleteHome() {
                         className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
                       >
                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                          {String.fromCharCode(65 + idx)}
+                          {getExerciseLetter(idx)}
                         </div>
                         <div className="text-gray-700">{exercise.name}</div>
                       </button>
@@ -202,6 +173,18 @@ export function AthleteHome() {
           {/* Upcoming Workouts */}
           <div className="px-6 mt-6">
             <h3 className="text-lg font-semibold mb-4">Upcoming Workouts</h3>
+            {!todayWorkout && displayWorkouts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <CalendarX className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-gray-400 text-sm">No workouts scheduled</p>
+              </div>
+            ) : displayWorkouts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-gray-400 text-sm">No upcoming workouts</p>
+              </div>
+            ) : (
             <div className="space-y-3">
               {displayWorkouts.map((workout) => (
                 <div key={workout.date} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -230,7 +213,7 @@ export function AthleteHome() {
                           className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
                         >
                           <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                            {String.fromCharCode(65 + idx)}
+                            {getExerciseLetter(idx)}
                           </div>
                           <div className="text-gray-700">{exercise.name}</div>
                         </button>
@@ -240,13 +223,21 @@ export function AthleteHome() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </>
       ) : (
         <>
           {/* Past Workouts */}
           <div className="px-6 mt-6 space-y-4">
-            {displayWorkouts.map((workout) => (
+            {displayWorkouts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <CalendarX className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-gray-400 text-sm">No workouts this month</p>
+              </div>
+            ) : displayWorkouts.map((workout) => (
               <div key={workout.date} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 {/* Date Header with Completion Icon */}
                 <button
@@ -279,7 +270,7 @@ export function AthleteHome() {
                         className="w-full p-4 hover:bg-gray-50 transition-colors text-left flex items-center gap-3"
                       >
                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-sm font-medium text-gray-700">
-                          {String.fromCharCode(65 + idx)}
+                          {getExerciseLetter(idx)}
                         </div>
                         <div className="text-gray-700">{exercise.name}</div>
                       </button>

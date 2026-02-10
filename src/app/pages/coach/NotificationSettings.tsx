@@ -12,8 +12,6 @@ export function NotificationSettings() {
     newAthleteJoins: true,
     workoutCompleted: true,
     messageReceived: true,
-    marketingEmails: false,
-    systemUpdates: true
   });
 
   const handleToggle = (field: keyof typeof settings) => {
@@ -103,27 +101,6 @@ export function NotificationSettings() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-100">
-              <h3 className="font-semibold">Other</h3>
-            </div>
-            <div className="divide-y divide-gray-100">
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Marketing Emails</div>
-                  <div className="text-sm text-gray-600">Receive tips and product updates</div>
-                </div>
-                <ToggleSwitch enabled={settings.marketingEmails} onChange={() => handleToggle('marketingEmails')} />
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">System Updates</div>
-                  <div className="text-sm text-gray-600">Important app updates and announcements</div>
-                </div>
-                <ToggleSwitch enabled={settings.systemUpdates} onChange={() => handleToggle('systemUpdates')} />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Action Buttons */}

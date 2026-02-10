@@ -28,12 +28,6 @@ export const isoToDayName = (iso: string): string => {
   return d.toLocaleDateString('en-US', { weekday: 'long' });
 };
 
-// Convert display date "February 5, 2026" back to ISO "2026-02-05"
-export const displayDateToISO = (display: string): string => {
-  const d = new Date(display);
-  return toISODateString(d);
-};
-
 // Get "today" as ISO string (hardcoded for demo, change to new Date() for production)
 export const getTodayISO = (): string => toISODateString(new Date('2026-02-04'));
 
@@ -42,11 +36,6 @@ export const getTodayISO = (): string => toISODateString(new Date('2026-02-04'))
 // Format month and year (e.g., "February 2026")
 export const formatMonthYear = (date: Date): string => {
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
-
-// Format full date (e.g., "February 5, 2026")
-export const formatFullDate = (date: Date): string => {
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 };
 
 // Check if two dates are in the same month

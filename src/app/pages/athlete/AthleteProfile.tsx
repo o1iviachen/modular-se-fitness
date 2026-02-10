@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -5,10 +6,56 @@ import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
 import { SectionHeader } from '../../components/ui/section-header';
 import { ListItemButton } from '../../components/ui/list-item-button';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { subscribeToAllWorkouts, WorkoutDoc } from '../../lib/workoutService';
+import { getTodayISO } from '../../utils/helpers';
 
 export function AthleteProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState({ completed: 0, streak: 0, thisMonth: 0 });
+  const [profile, setProfile] = useState<{ age?: number; gender?: string; weight?: string; height?: string }>({});
+
+  // Load physical info from Firestore
+  useEffect(() => {
+    if (!user?.id) return;
+    getDoc(doc(db, 'users', user.id)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfile({
+          age: data.age ?? undefined,
+          gender: data.gender ?? undefined,
+          weight: data.weight ?? undefined,
+          height: data.height ?? undefined,
+        });
+      }
+    });
+  }, [user?.id]);
+
+  // Compute stats from real workout data
+  useEffect(() => {
+    if (!user?.id) return;
+    return subscribeToAllWorkouts(user.id, (workouts: WorkoutDoc[]) => {
+      const todayISO = getTodayISO();
+      const pastWorkouts = workouts.filter(w => w.date <= todayISO && !w.isRestDay);
+      const completed = pastWorkouts.filter(w => w.completed).length;
+
+      // Streak
+      const sorted = [...pastWorkouts].sort((a, b) => b.date.localeCompare(a.date));
+      let streak = 0;
+      for (const w of sorted) {
+        if (w.completed) streak++;
+        else break;
+      }
+
+      // This month
+      const currentMonth = todayISO.slice(0, 7); // "2026-02"
+      const thisMonth = pastWorkouts.filter(w => w.date.startsWith(currentMonth) && w.completed).length;
+
+      setStats({ completed, streak, thisMonth });
+    });
+  }, [user?.id]);
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
@@ -21,15 +68,11 @@ export function AthleteProfile() {
     alert('Profile photo editing would be implemented here');
   };
 
-  const stats = [
-    { label: 'Completed', value: '24' },
-    { label: 'Day Streak', value: '5' },
-    { label: 'This Month', value: '8' }
-  ];
+  const hasPhysicalInfo = profile.age || profile.gender || profile.weight || profile.height;
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
-      <ProfileHeader 
+      <ProfileHeader
         firstName={user?.firstName}
         lastName={user?.lastName}
         email={user?.email}
@@ -40,12 +83,18 @@ export function AthleteProfile() {
       <div className="px-6 -mt-4 mb-6">
         <PageCard>
           <div className="grid grid-cols-3 gap-4">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-2xl mb-1">{stat.value}</div>
-                <div className="text-xs text-gray-500">{stat.label}</div>
-              </div>
-            ))}
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.completed}</div>
+              <div className="text-xs text-gray-500">Completed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.streak}</div>
+              <div className="text-xs text-gray-500">Day Streak</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.thisMonth}</div>
+              <div className="text-xs text-gray-500">This Month</div>
+            </div>
           </div>
         </PageCard>
       </div>
@@ -62,14 +111,34 @@ export function AthleteProfile() {
             <div className="text-sm text-gray-600 mb-1">Name</div>
             <div className="text-black">{user?.firstName} {user?.lastName}</div>
           </div>
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Role</div>
-            <div className="text-black">Athlete</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Member Since</div>
-            <div className="text-black">January 2026</div>
-          </div>
+          {hasPhysicalInfo && (
+            <>
+              {profile.age && (
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Age</div>
+                  <div className="text-black">{profile.age}</div>
+                </div>
+              )}
+              {profile.gender && (
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Gender</div>
+                  <div className="text-black">{profile.gender}</div>
+                </div>
+              )}
+              {profile.height && (
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Height</div>
+                  <div className="text-black">{profile.height} cm</div>
+                </div>
+              )}
+              {profile.weight && (
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Weight</div>
+                  <div className="text-black">{profile.weight} kg</div>
+                </div>
+              )}
+            </>
+          )}
         </PageCard>
       </div>
 

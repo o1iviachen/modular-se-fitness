@@ -117,10 +117,6 @@ export function Login() {
         </button>
       </div>
 
-      <div className="mt-6 text-center text-sm text-gray-500">
-        Demo credentials: coach@sefitness.com / coach123<br />
-        or athlete@example.com / athlete123
-      </div>
     </AuthContainer>
   );
 }

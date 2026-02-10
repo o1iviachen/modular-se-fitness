@@ -2,20 +2,13 @@ import { useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-
-interface Goal {
-  id: number;
-  title: string;
-  target: string;
-  deadline: string;
-  completed: boolean;
-}
+import { updateGoal } from '../../lib/goalService';
 
 export function EditGoal() {
   const navigate = useNavigate();
   const location = useLocation();
   const { athleteId } = useParams();
-  const { goal, athleteName } = location.state || {};
+  const { goal } = location.state || {};
 
   const [editedGoal, setEditedGoal] = useState({
     title: goal?.title || '',
@@ -23,8 +16,9 @@ export function EditGoal() {
     deadline: goal?.deadline || ''
   });
 
-  const handleSave = () => {
-    // In a real app, this would update the goal in the database
+  const handleSave = async () => {
+    if (!athleteId || !goal?.id) return;
+    await updateGoal(athleteId, goal.id, editedGoal);
     navigate(-1);
   };
 
@@ -40,7 +34,6 @@ export function EditGoal() {
         </button>
         <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">Edit Goal</h1>
-        <p className="text-gray-400 text-sm mt-1">{athleteName}</p>
       </div>
 
       {/* Content */}

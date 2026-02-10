@@ -12,11 +12,6 @@ export function AthleteNotificationSettings() {
     newWorkoutAssigned: true,
     workoutReminder: true,
     messageReceived: true,
-    coachFeedback: true,
-    weeklyProgress: true,
-    motivationalTips: false,
-    marketingEmails: false,
-    systemUpdates: true
   });
 
   const handleToggle = (field: keyof typeof settings) => {
@@ -95,13 +90,6 @@ export function AthleteNotificationSettings() {
                   <div className="text-sm text-gray-600">Get reminded about scheduled workouts</div>
                 </div>
                 <ToggleSwitch enabled={settings.workoutReminder} onChange={() => handleToggle('workoutReminder')} />
-              </div>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Weekly Progress Report</div>
-                  <div className="text-sm text-gray-600">Receive weekly summary of your progress</div>
-                </div>
-                <ToggleSwitch enabled={settings.weeklyProgress} onChange={() => handleToggle('weeklyProgress')} />
               </div>
             </div>
           </div>

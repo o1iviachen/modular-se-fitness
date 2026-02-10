@@ -2,18 +2,13 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-
-interface Goal {
-  id: number;
-  title: string;
-  target: string;
-  deadline: string;
-  completed: boolean;
-}
+import { useAuth } from '../../context/AuthContext';
+import { updateGoal } from '../../lib/goalService';
 
 export function EditGoal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { goal } = location.state || {};
 
   const [editedGoal, setEditedGoal] = useState({
@@ -22,8 +17,9 @@ export function EditGoal() {
     deadline: goal?.deadline || ''
   });
 
-  const handleSave = () => {
-    // In a real app, this would update the goal in the database
+  const handleSave = async () => {
+    if (!user?.id || !goal?.id) return;
+    await updateGoal(user.id, goal.id, editedGoal);
     navigate(-1);
   };
 

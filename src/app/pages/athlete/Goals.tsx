@@ -1,46 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Check, Edit2 } from 'lucide-react';
 import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-
-interface Goal {
-  id: number;
-  title: string;
-  target: string;
-  deadline: string;
-  completed: boolean;
-}
+import { useAuth } from '../../context/AuthContext';
+import { subscribeToGoals, addGoal, deleteGoal, updateGoal, Goal } from '../../lib/goalService';
 
 export function Goals() {
   const navigate = useNavigate();
-  const [goals, setGoals] = useState<Goal[]>([
-    { id: 1, title: 'Build muscle and increase strength', target: '175 lbs', deadline: '6 months', completed: false },
-    { id: 2, title: 'Run a 5K under 25 minutes', target: '24:30', deadline: '3 months', completed: false },
-    { id: 3, title: 'Master proper squat form', target: 'Form check', deadline: '1 month', completed: true }
-  ]);
+  const { user } = useAuth();
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', target: '', deadline: '' });
 
-  const handleAddGoal = () => {
-    if (newGoal.title.trim() && newGoal.target.trim() && newGoal.deadline.trim()) {
-      setGoals([...goals, { 
-        id: Date.now(), 
-        ...newGoal, 
-        completed: false 
-      }]);
+  useEffect(() => {
+    if (!user?.id) return;
+    return subscribeToGoals(user.id, setGoals);
+  }, [user?.id]);
+
+  const handleAddGoal = async () => {
+    if (!user?.id || !newGoal.title.trim() || !newGoal.target.trim() || !newGoal.deadline.trim()) return;
+    try {
+      await addGoal(user.id, newGoal);
       setNewGoal({ title: '', target: '', deadline: '' });
       setIsAddingGoal(false);
+    } catch (err) {
+      console.error('Failed to add goal:', err);
     }
   };
 
-  const handleDeleteGoal = (id: number) => {
-    setGoals(goals.filter(g => g.id !== id));
+  const handleDeleteGoal = (id: string) => {
+    if (!user?.id) return;
+    deleteGoal(user.id, id);
   };
 
-  const handleToggleComplete = (id: number) => {
-    setGoals(goals.map(g => 
-      g.id === id ? { ...g, completed: !g.completed } : g
-    ));
+  const handleToggleComplete = (goal: Goal) => {
+    if (!user?.id) return;
+    updateGoal(user.id, goal.id, { completed: !goal.completed });
   };
 
   const handleEditGoal = (goal: Goal) => {
@@ -143,10 +138,10 @@ export function Goals() {
             >
               <div className="flex items-start gap-3">
                 <button
-                  onClick={() => handleToggleComplete(goal.id)}
+                  onClick={() => handleToggleComplete(goal)}
                   className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    goal.completed 
-                      ? 'bg-green-500 border-green-500' 
+                    goal.completed
+                      ? 'bg-green-500 border-green-500'
                       : 'border-gray-300 hover:border-[#FFD000]'
                   }`}
                 >
