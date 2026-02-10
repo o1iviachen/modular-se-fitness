@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, FileText, Upload, Trash2, Loader2 } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { subscribeToDocuments, uploadDocument, deleteDocument, formatFileSize, DocumentItem } from '../../lib/documentService';
@@ -82,7 +82,7 @@ export function AthleteDocuments() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">{athleteName}'s Documents</h1>
         <p className="text-gray-400 text-sm">View and manage documents</p>
       </div>

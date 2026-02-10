@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Send } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
-import { useAuth } from '../../context/AuthContext';
-import { functions } from '../../lib/firebase';
+
+import { useAuth } from '../context/AuthContext';
+import { functions } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
 
-export function CoachEmailSupport() {
+export function EmailSupport() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -63,7 +63,7 @@ export function CoachEmailSupport() {
             <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+            <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
             <h1 className="text-xl font-semibold">Email Support</h1>
             <p className="text-gray-400 text-sm mt-2">Send us a message and we'll get back to you</p>
           </div>

@@ -3,7 +3,7 @@ import { ChevronRight, Check, X, ChevronLeft, CalendarX } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { usePageState } from '../../hooks/usePageState';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { subscribeToAllWorkouts } from '../../lib/workoutService';
 import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, filterWorkoutsByMonth, getExerciseLabels } from '../../utils/helpers';
 
@@ -99,7 +99,7 @@ export function AthleteHome() {
       {/* Header */}
       <div className={`bg-black text-white px-6 pt-12 ${activeTab === 'upcoming' ? 'pb-12' : 'pb-6'}`}>
         <div className="flex items-center justify-center gap-3 mb-6">
-          <img src={logo} alt="SE Fitness" className="h-8 w-auto" />
+          <img src="/se-logo.png" alt="SE Fitness" className="h-8 w-auto" />
           <h1 className="text-xl font-semibold">{getGreeting()}, {user?.firstName}</h1>
         </div>
 

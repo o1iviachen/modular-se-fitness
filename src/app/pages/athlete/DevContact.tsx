@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Send } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 
 export function DevContact() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export function DevContact() {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+            <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
             <h1 className="text-xl font-semibold">Contact Dev Team</h1>
             <p className="text-gray-400 text-sm mt-1">We're here to help!</p>
           </div>

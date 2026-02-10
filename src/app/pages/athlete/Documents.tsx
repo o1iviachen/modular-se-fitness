@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, FileText, Download } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToDocuments, formatFileSize, DocumentItem } from '../../lib/documentService';
 
@@ -25,7 +25,7 @@ export function Documents() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">Documents</h1>
         <p className="text-gray-400 text-sm mt-1">Shared by your coach</p>
       </div>

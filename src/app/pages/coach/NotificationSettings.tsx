@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 
 const defaultSettings = {
   emailNotifications: true,
@@ -66,7 +66,7 @@ export function NotificationSettings() {
         <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">Notification Settings</h1>
       </div>
 

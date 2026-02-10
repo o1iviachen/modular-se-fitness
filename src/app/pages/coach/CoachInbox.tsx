@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Search, ChevronRight } from 'lucide-react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 
 interface Conversation {
   id: string;
@@ -64,7 +64,7 @@ export function CoachInbox() {
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">Inbox</h1>
         <p className="text-gray-400 text-sm">
           {conversations.length} athlete{conversations.length !== 1 ? 's' : ''}

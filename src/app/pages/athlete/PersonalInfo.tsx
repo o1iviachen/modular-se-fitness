@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -67,7 +67,7 @@ export function PersonalInfo() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">Personal Information</h1>
       </div>
 

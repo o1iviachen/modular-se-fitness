@@ -16,7 +16,7 @@ import { DevContact } from './pages/athlete/DevContact';
 import { AthleteEditProfile } from './pages/athlete/AthleteEditProfile';
 import { AthleteNotificationSettings } from './pages/athlete/AthleteNotificationSettings';
 import { AthleteHelpSupport } from './pages/athlete/AthleteHelpSupport';
-import { AthleteEmailSupport } from './pages/athlete/EmailSupport';
+import { EmailSupport } from './components/EmailSupport';
 import { CoachHome } from './pages/coach/CoachHome';
 import { CoachLibrary } from './pages/coach/CoachLibrary';
 import { CoachInbox } from './pages/coach/CoachInbox';
@@ -28,7 +28,6 @@ import { CreateExercise } from './pages/coach/CreateExercise';
 import { CoachEditProfile } from './pages/coach/CoachEditProfile';
 import { NotificationSettings } from './pages/coach/NotificationSettings';
 import { HelpSupport } from './pages/coach/HelpSupport';
-import { CoachEmailSupport } from './pages/coach/EmailSupport';
 import { Messages } from './pages/Messages';
 import { AthleteGoals } from './pages/coach/AthleteGoals';
 import { AthleteDocuments } from './pages/coach/AthleteDocuments';
@@ -97,7 +96,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'email-support',
-        element: <AthleteEmailSupport />
+        element: <EmailSupport />
       },
       {
         path: 'goals',
@@ -191,7 +190,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'email-support',
-        element: <CoachEmailSupport />
+        element: <EmailSupport />
       }
     ]
   }

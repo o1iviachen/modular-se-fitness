@@ -295,10 +295,11 @@ export function AthleteWorkoutDetail() {
       )}
 
       {/* Workout Comments Modal */}
-      {showComments && (
+      {showComments && user?.id && dateString && (
         <WorkoutComments
-          workoutId={dateString || ''}
-          workoutDate={displayDate}
+          athleteId={user.id}
+          workoutDate={dateString}
+          displayDate={displayDate}
           onClose={() => setShowComments(false)}
         />
       )}

@@ -6,7 +6,7 @@ import { usePageState } from '../../hooks/usePageState';
 import { collection, onSnapshot, orderBy, query, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
 import { EquipmentFilterModal } from '../../components/EquipmentFilterModal';
@@ -114,7 +114,7 @@ export function CoachLibrary() {
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">Exercise Library</h1>
         <p className="text-gray-400 text-sm">Browse and assign exercises to athletes</p>
       </div>

@@ -96,46 +96,35 @@ export async function setRestDay(
   }
 }
 
-/** Toggle individual exercise completion (athlete side) */
-export async function toggleExerciseCompletion(
+/** Update a single field on one exercise within a workout */
+async function updateExerciseField(
   athleteId: string,
   dateString: string,
   exerciseIndex: number,
-  completed: boolean
+  updates: Partial<WorkoutExercise>
 ): Promise<void> {
   const ref = workoutDocRef(athleteId, dateString);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
-  const data = snap.data();
-  const exercises = [...data.exercises];
-  exercises[exerciseIndex] = { ...exercises[exerciseIndex], completed };
+  const exercises = [...snap.data().exercises];
+  exercises[exerciseIndex] = { ...exercises[exerciseIndex], ...updates };
 
-  await updateDoc(ref, {
-    exercises,
-    updatedAt: serverTimestamp(),
-  });
+  await updateDoc(ref, { exercises, updatedAt: serverTimestamp() });
+}
+
+/** Toggle individual exercise completion (athlete side) */
+export async function toggleExerciseCompletion(
+  athleteId: string, dateString: string, exerciseIndex: number, completed: boolean
+): Promise<void> {
+  await updateExerciseField(athleteId, dateString, exerciseIndex, { completed });
 }
 
 /** Save athlete's result text for a specific exercise */
 export async function saveExerciseResult(
-  athleteId: string,
-  dateString: string,
-  exerciseIndex: number,
-  result: string
+  athleteId: string, dateString: string, exerciseIndex: number, result: string
 ): Promise<void> {
-  const ref = workoutDocRef(athleteId, dateString);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-
-  const data = snap.data();
-  const exercises = [...data.exercises];
-  exercises[exerciseIndex] = { ...exercises[exerciseIndex], result };
-
-  await updateDoc(ref, {
-    exercises,
-    updatedAt: serverTimestamp(),
-  });
+  await updateExerciseField(athleteId, dateString, exerciseIndex, { result });
 }
 
 /** Mark entire workout as completed (athlete side) */

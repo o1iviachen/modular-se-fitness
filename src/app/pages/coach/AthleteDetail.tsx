@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { getCurrentWeekDates, isoToDisplayDate, getTodayISO } from '../../utils/helpers';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
@@ -217,7 +217,7 @@ export function AthleteDetail() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">{athlete.name}</h1>
         <p className="text-gray-400 text-sm">{athlete.email}</p>
       </div>

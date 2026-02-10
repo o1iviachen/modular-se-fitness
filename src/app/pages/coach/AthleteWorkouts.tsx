@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth, isoToDisplayDate, isoToDayName } from '../../utils/helpers';
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { doc, getDoc } from 'firebase/firestore';
@@ -124,7 +124,7 @@ export function AthleteWorkouts() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">{athleteName}'s Workouts</h1>
         <p className="text-gray-400 text-sm">View all assigned workouts</p>
       </div>

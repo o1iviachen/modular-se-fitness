@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare } from 'lucide-react';
+import { WorkoutComments } from '../../components/WorkoutComments';
+
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
 import { saveWorkout, getWorkout, WorkoutExercise } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
@@ -29,6 +30,7 @@ export function WorkoutDetail() {
   const [workoutNotes, setWorkoutNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   // Load existing workout from Firestore on mount
   useEffect(() => {
@@ -131,7 +133,7 @@ export function WorkoutDetail() {
           <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+          <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         </div>
         <div className="flex items-center justify-center py-12">
           <p className="text-gray-500">Loading...</p>
@@ -143,10 +145,15 @@ export function WorkoutDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
-        <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => navigate(-1)} className="text-white hover:text-[#FFD000] transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <button onClick={() => setShowComments(true)} className="text-white hover:text-[#FFD000] transition-colors">
+            <MessageSquare className="w-6 h-6" />
+          </button>
+        </div>
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         {workoutDay && workoutDate && <h1 className="text-lg font-semibold">{workoutDay} <span className="text-sm">·</span> {isoToDisplayDate(workoutDate)}</h1>}
       </div>
 
@@ -296,6 +303,16 @@ export function WorkoutDetail() {
           </button>
         </div>
       </div>
+
+      {/* Workout Comments Modal */}
+      {showComments && athleteId && workoutDate && (
+        <WorkoutComments
+          athleteId={athleteId}
+          workoutDate={workoutDate}
+          displayDate={isoToDisplayDate(workoutDate)}
+          onClose={() => setShowComments(false)}
+        />
+      )}
     </div>
   );
 }

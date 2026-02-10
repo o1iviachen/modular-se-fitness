@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import gymBackground from 'figma:asset/22995820038f42fe600c7769e604277fa0c09953.png';
 
 interface AuthContainerProps {
@@ -22,7 +22,7 @@ export function AuthContainer({ children }: AuthContainerProps) {
       {/* Content */}
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center -mt-12">
         <div className="mb-12">
-          <img src={logo} alt="SE Fitness" className="h-32 w-auto" />
+          <img src="/se-logo.png" alt="SE Fitness" className="h-32 w-auto" />
         </div>
         <div className="w-full">
           {children}

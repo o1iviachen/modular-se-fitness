@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 
 export function CreateExercise() {
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ export function CreateExercise() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold mb-1">{isEditMode ? 'Edit Exercise' : 'Create Custom Exercise'}</h1>
         <p className="text-gray-400 text-sm">{isEditMode ? 'Update your custom exercise' : 'Add a new exercise to your library'}</p>
       </div>

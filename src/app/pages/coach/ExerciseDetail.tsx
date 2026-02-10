@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
 import { useState, useEffect } from 'react';
@@ -69,7 +69,7 @@ export function ExerciseDetail() {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <div className="flex items-center gap-2 mb-2">
           <h1 className="text-xl font-semibold">{exercise.name}</h1>
           <span className={`text-xs px-2 py-1 rounded-full ${getSourceBadgeColor(exercise.source)}`}>

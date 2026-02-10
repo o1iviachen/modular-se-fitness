@@ -1,43 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import {
+  collection, query, orderBy, onSnapshot, addDoc, serverTimestamp,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface Comment {
   id: string;
   text: string;
-  sender: 'athlete' | 'coach';
-  timestamp: string;
+  senderId: string;
   senderName: string;
+  senderRole: 'athlete' | 'coach';
+  timestamp: string;
 }
 
 interface WorkoutCommentsProps {
-  workoutId: string;
-  workoutDate: string;
+  athleteId: string;
+  workoutDate: string;       // ISO date string e.g. "2026-02-10"
+  displayDate: string;       // formatted for header e.g. "Feb 10, 2026"
   onClose: () => void;
 }
 
-// Mock comments data
-const mockComments: { [key: string]: Comment[] } = {
-  '1': [
-    {
-      id: '1',
-      text: 'Great work on the bench press today!',
-      sender: 'coach',
-      timestamp: '2:30 PM',
-      senderName: 'Coach Sarah'
-    },
-    {
-      id: '2',
-      text: 'Thanks! I felt really strong today.',
-      sender: 'athlete',
-      timestamp: '2:32 PM',
-      senderName: 'You'
-    }
-  ],
-  '2': []
-};
-
-export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutCommentsProps) {
-  const [comments, setComments] = useState<Comment[]>(mockComments[workoutId] || []);
+export function WorkoutComments({ athleteId, workoutDate, displayDate, onClose }: WorkoutCommentsProps) {
+  const { user } = useAuth();
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const [translateY, setTranslateY] = useState(0);
@@ -47,26 +34,43 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
   const startYRef = useRef(0);
   const currentYRef = useRef(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const commentsRef = collection(db, 'users', athleteId, 'workouts', workoutDate, 'comments');
+
+  // Subscribe to comments in real-time
+  useEffect(() => {
+    const q = query(commentsRef, orderBy('timestamp', 'asc'));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const msgs = snap.docs.map((d) => {
+        const data = d.data();
+        const ts = data.timestamp?.toDate?.();
+        return {
+          id: d.id,
+          text: data.text,
+          senderId: data.senderId,
+          senderName: data.senderName,
+          senderRole: data.senderRole,
+          timestamp: ts
+            ? ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : '',
+        } as Comment;
+      });
+      setComments(msgs);
+    });
+    return unsubscribe;
+  }, [athleteId, workoutDate]);
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
+    setTimeout(() => onClose(), 300);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Only allow dragging from the header area
     const target = e.target as HTMLElement;
     if (!target.closest('.drag-handle')) return;
-    
     startYRef.current = e.touches[0].clientY;
     currentYRef.current = e.touches[0].clientY;
     setIsDragging(true);
@@ -74,43 +78,34 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
-    
     currentYRef.current = e.touches[0].clientY;
     const deltaY = currentYRef.current - startYRef.current;
-    
-    // Only allow dragging down
-    if (deltaY > 0) {
-      setTranslateY(deltaY);
-    }
+    if (deltaY > 0) setTranslateY(deltaY);
   };
 
   const handleTouchEnd = () => {
     if (!isDragging) return;
-    
     setIsDragging(false);
     const deltaY = currentYRef.current - startYRef.current;
-    
-    // If dragged down more than 150px, close the modal
     if (deltaY > 150) {
       handleClose();
     } else {
-      // Otherwise, snap back to position
       setTranslateY(0);
     }
   };
 
-  const handleSend = () => {
-    if (newComment.trim()) {
-      const comment: Comment = {
-        id: Date.now().toString(),
-        text: newComment,
-        sender: 'athlete',
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        senderName: 'You'
-      };
-      setComments([...comments, comment]);
-      setNewComment('');
-    }
+  const handleSend = async () => {
+    if (!newComment.trim() || !user) return;
+    const text = newComment.trim();
+    setNewComment('');
+
+    await addDoc(commentsRef, {
+      text,
+      senderId: user.id,
+      senderName: `${user.firstName} ${user.lastName}`,
+      senderRole: user.role,
+      timestamp: serverTimestamp(),
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -123,13 +118,13 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className={`fixed inset-0 bg-black/40 z-50 transition-opacity duration-300 ${
           isClosing ? 'opacity-0' : 'opacity-100'
         }`}
         onClick={handleClose}
       />
-      
+
       {/* Modal */}
       <div
         ref={containerRef}
@@ -151,8 +146,9 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
         </div>
 
         {/* Header */}
-        <div className="drag-handle bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-center">
-          <h1 className="text-lg font-semibold text-black">Workout Comments</h1>
+        <div className="drag-handle bg-white border-b border-gray-200 px-4 py-3 text-center">
+          <h1 className="text-lg font-semibold text-black">Workout Chat</h1>
+          <p className="text-xs text-gray-500">{displayDate}</p>
         </div>
 
         {/* Messages Area */}
@@ -161,7 +157,6 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="mb-6">
-                  {/* Empty state illustration - simplified chat bubbles */}
                   <div className="space-y-4 mb-8">
                     <div className="bg-white rounded-2xl p-4 shadow-sm max-w-[280px] mx-auto">
                       <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -177,33 +172,39 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-400 text-lg">No comments on this workout</p>
+                <p className="text-gray-400 text-lg">No messages yet</p>
+                <p className="text-gray-300 text-sm mt-1">Start the conversation about this workout</p>
               </div>
             </div>
           ) : (
             <div className="space-y-4 pb-4">
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className={`flex ${comment.sender === 'athlete' ? 'justify-end' : 'justify-start'}`}
-                >
+              {comments.map((comment) => {
+                const isMe = comment.senderId === user?.id;
+                return (
                   <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                      comment.sender === 'athlete'
-                        ? 'bg-[#FFD000] text-black'
-                        : 'bg-white text-black'
-                    }`}
+                    key={comment.id}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                   >
-                    {comment.sender === 'coach' && (
-                      <div className="text-xs font-medium text-gray-600 mb-1">
-                        {comment.senderName}
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                        isMe
+                          ? 'bg-[#FFD000] text-black'
+                          : 'bg-white text-black border border-gray-200'
+                      }`}
+                    >
+                      {!isMe && (
+                        <div className="text-xs font-medium text-gray-500 mb-1">
+                          {comment.senderName}
+                        </div>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap break-words">{comment.text}</p>
+                      <div className={`text-xs mt-1 ${isMe ? 'text-black/50' : 'text-gray-400'}`}>
+                        {comment.timestamp}
                       </div>
-                    )}
-                    <p className="text-sm whitespace-pre-wrap break-words">{comment.text}</p>
-                    <div className="text-xs text-gray-500 mt-1">{comment.timestamp}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -216,8 +217,8 @@ export function WorkoutComments({ workoutId, workoutDate, onClose }: WorkoutComm
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Add Comment"
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message..."
               className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-[#FFD000] text-black placeholder-gray-400"
             />
             <button

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Search, UserPlus } from 'lucide-react';
-import logo from 'figma:asset/6715fa8a90369e65d79802402e0679daa2d685be.png';
+
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AthleteCard } from '../../components/ui/athlete-card';
 import { usePageState } from '../../hooks/usePageState';
@@ -143,7 +143,7 @@ export function CoachHome() {
   return (
     <div className="min-h-full bg-gray-50 pb-6">
       <div className="bg-black text-white px-6 py-8">
-        <img src={logo} alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl mb-1 font-semibold">Welcome, Coach {user?.firstName}</h1>
         <p className="text-gray-400 text-sm">{activeAthletes.length} active athlete{activeAthletes.length !== 1 ? 's' : ''}</p>
       </div>
