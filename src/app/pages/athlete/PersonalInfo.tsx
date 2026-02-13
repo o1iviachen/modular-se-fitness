@@ -16,8 +16,6 @@ export function PersonalInfo() {
     dateOfBirth: '',
     height: '',
     weight: '',
-    emergencyContact: '',
-    emergencyPhone: ''
   });
   const [loaded, setLoaded] = useState(false);
 
@@ -33,8 +31,6 @@ export function PersonalInfo() {
           dateOfBirth: data.dateOfBirth || '',
           height: data.height != null ? String(data.height) : '',
           weight: data.weight != null ? String(data.weight) : '',
-          emergencyContact: data.emergencyContact || '',
-          emergencyPhone: data.emergencyPhone || '',
         });
       }
       setLoaded(true);
@@ -49,8 +45,6 @@ export function PersonalInfo() {
       dateOfBirth: info.dateOfBirth || null,
       height: info.height || null,
       weight: info.weight || null,
-      emergencyContact: info.emergencyContact || null,
-      emergencyPhone: info.emergencyPhone || null,
     });
     navigate(-1);
   };
@@ -135,30 +129,6 @@ export function PersonalInfo() {
                 placeholder="e.g. 75"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
               />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-4">Emergency Contact</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Contact Name</label>
-                <input
-                  type="text"
-                  value={info.emergencyContact}
-                  onChange={(e) => setInfo({ ...info, emergencyContact: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Contact Phone</label>
-                <input
-                  type="tel"
-                  value={info.emergencyPhone}
-                  onChange={(e) => setInfo({ ...info, emergencyPhone: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                />
-              </div>
             </div>
           </div>
 

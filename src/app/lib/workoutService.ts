@@ -3,9 +3,16 @@ import {
   collection, query, where, orderBy, onSnapshot,
   serverTimestamp, Timestamp
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from './firebase';
 
 // ---- Type Definitions ----
+
+export interface ResultMedia {
+  url: string;
+  type: 'image' | 'video';
+  storagePath: string;
+}
 
 export interface WorkoutExercise {
   name: string;
@@ -17,6 +24,7 @@ export interface WorkoutExercise {
   completed: boolean;
   supersetWithPrev?: boolean;
   result?: string;
+  resultMedia?: ResultMedia[];
 }
 
 export interface WorkoutDoc {
@@ -122,9 +130,32 @@ export async function toggleExerciseCompletion(
 
 /** Save athlete's result text for a specific exercise */
 export async function saveExerciseResult(
-  athleteId: string, dateString: string, exerciseIndex: number, result: string
+  athleteId: string, dateString: string, exerciseIndex: number, result: string, resultMedia?: ResultMedia[]
 ): Promise<void> {
-  await updateExerciseField(athleteId, dateString, exerciseIndex, { result });
+  const updates: Partial<WorkoutExercise> = { result };
+  if (resultMedia !== undefined) {
+    updates.resultMedia = resultMedia;
+  }
+  await updateExerciseField(athleteId, dateString, exerciseIndex, updates);
+}
+
+/** Upload a result media file (photo or video) for an exercise */
+export async function uploadResultMedia(
+  athleteId: string, dateString: string, exerciseIndex: number, file: File
+): Promise<ResultMedia> {
+  const isVideo = file.type.startsWith('video/');
+  const ext = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
+  const fileName = `${Date.now()}.${ext}`;
+  const path = `results/${athleteId}/${dateString}/${exerciseIndex}/${fileName}`;
+  const fileRef = storageRef(storage, path);
+  await uploadBytes(fileRef, file);
+  const url = await getDownloadURL(fileRef);
+  return { url, type: isVideo ? 'video' : 'image', storagePath: path };
+}
+
+/** Delete a result media file from storage */
+export async function deleteResultMedia(storagePath: string): Promise<void> {
+  await deleteObject(storageRef(storage, storagePath));
 }
 
 /** Mark entire workout as completed (athlete side) */
@@ -147,6 +178,41 @@ export async function completeWorkout(
     completed: true,
     updatedAt: serverTimestamp(),
   });
+}
+
+/** Copy a workout from one date to multiple target dates */
+export async function copyWorkout(
+  athleteId: string,
+  sourceDate: string,
+  targetDates: string[]
+): Promise<void> {
+  const source = await getWorkout(athleteId, sourceDate);
+  if (!source || source.isRestDay) return;
+
+  const cleanExercises: WorkoutExercise[] = source.exercises.map(ex => ({
+    name: ex.name,
+    sets: ex.sets,
+    reps: ex.reps,
+    weight: ex.weight,
+    notes: ex.notes,
+    videoUrl: ex.videoUrl || '',
+    completed: false,
+    supersetWithPrev: ex.supersetWithPrev || false,
+  }));
+
+  await Promise.all(
+    targetDates.map(date =>
+      setDoc(workoutDocRef(athleteId, date), {
+        date,
+        exercises: cleanExercises,
+        workoutNotes: source.workoutNotes || '',
+        isRestDay: false,
+        completed: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+    )
+  );
 }
 
 // ---- Read Operations ----

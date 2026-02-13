@@ -27,7 +27,7 @@ interface FirestoreAthlete {
   tenureMonths: number;
 }
 
-type SortOption = 'name' | 'lastWorkout-latest' | 'lastWorkout-earliest' | 'tenure-longest' | 'tenure-shortest';
+type SortOption = 'name' | 'lastWorkout-latest' | 'lastWorkout-earliest';
 
 export function CoachHome() {
   const { user } = useAuth();
@@ -101,8 +101,6 @@ export function CoachHome() {
       const bTime = b.lastWorkoutDate?.toMillis?.() || 0;
       return aTime - bTime;
     },
-    'tenure-longest': (a, b) => b.tenureMonths - a.tenureMonths,
-    'tenure-shortest': (a, b) => a.tenureMonths - b.tenureMonths,
   };
 
   const currentList = activeTab === 'active' ? activeAthletes : archivedAthletes;
@@ -177,8 +175,6 @@ export function CoachHome() {
           <option value="name">Name (A-Z)</option>
           <option value="lastWorkout-latest">Recent First</option>
           <option value="lastWorkout-earliest">Oldest First</option>
-          <option value="tenure-longest">Longest Tenure</option>
-          <option value="tenure-shortest">Shortest Tenure</option>
         </select>
         <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value as any)} className="flex-1 px-3 py-3 bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFD000] text-sm">
           <option value="all">All Genders</option>

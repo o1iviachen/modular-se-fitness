@@ -12,7 +12,6 @@ import { AthleteWorkoutDetail } from './pages/athlete/AthleteWorkoutDetail';
 import { Goals } from './pages/athlete/Goals';
 import { Documents } from './pages/athlete/Documents';
 import { PersonalInfo } from './pages/athlete/PersonalInfo';
-import { DevContact } from './pages/athlete/DevContact';
 import { AthleteEditProfile } from './pages/athlete/AthleteEditProfile';
 import { AthleteNotificationSettings } from './pages/athlete/AthleteNotificationSettings';
 import { AthleteHelpSupport } from './pages/athlete/AthleteHelpSupport';
@@ -110,10 +109,6 @@ export const router = createBrowserRouter([
         path: 'personal-info',
         element: <PersonalInfo />
       },
-      {
-        path: 'dev-contact',
-        element: <DevContact />
-      }
     ]
   },
   {

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare, Copy } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
+import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
-import { saveWorkout, getWorkout, WorkoutExercise } from '../../lib/workoutService';
+import { saveWorkout, getWorkout, copyWorkout, WorkoutExercise } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
 import { exerciseLibrary } from '../../data/exerciseLibrary';
 
@@ -31,6 +32,8 @@ export function WorkoutDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   // Load existing workout from Firestore on mount
   useEffect(() => {
@@ -126,6 +129,18 @@ export function WorkoutDetail() {
     }
   };
 
+  const handleCopy = async (targetDates: string[]) => {
+    setCopying(true);
+    try {
+      await copyWorkout(athleteId, workoutDate, targetDates);
+      setShowCopyModal(false);
+    } catch (err) {
+      console.error('Failed to copy workout:', err);
+    } finally {
+      setCopying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -149,9 +164,14 @@ export function WorkoutDetail() {
           <button onClick={() => navigate(-1)} className="text-white hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <button onClick={() => setShowComments(true)} className="text-white hover:text-[#FFD000] transition-colors">
-            <MessageSquare className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowCopyModal(true)} className="text-white hover:text-[#FFD000] transition-colors" title="Copy workout to other dates">
+              <Copy className="w-5 h-5" />
+            </button>
+            <button onClick={() => setShowComments(true)} className="text-white hover:text-[#FFD000] transition-colors">
+              <MessageSquare className="w-6 h-6" />
+            </button>
+          </div>
         </div>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         {workoutDay && workoutDate && <h1 className="text-lg font-semibold">{workoutDay} <span className="text-sm">·</span> {isoToDisplayDate(workoutDate)}</h1>}
@@ -313,6 +333,15 @@ export function WorkoutDetail() {
           onClose={() => setShowComments(false)}
         />
       )}
+
+      {/* Copy Workout Modal */}
+      <CopyWorkoutModal
+        isOpen={showCopyModal}
+        sourceDate={workoutDate}
+        onCopy={handleCopy}
+        onClose={() => setShowCopyModal(false)}
+        copying={copying}
+      />
     </div>
   );
 }

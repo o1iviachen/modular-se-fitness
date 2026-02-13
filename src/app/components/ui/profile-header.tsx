@@ -5,20 +5,20 @@ interface ProfileHeaderProps {
   firstName?: string;
   lastName?: string;
   email?: string;
-  photoURL?: string;
+  photoUrl?: string;
   subtitle?: ReactNode;
   onEditPhoto?: () => void;
   uploading?: boolean;
 }
 
-export function ProfileHeader({ firstName, lastName, email, photoURL, subtitle, onEditPhoto, uploading }: ProfileHeaderProps) {
+export function ProfileHeader({ firstName, lastName, email, photoUrl, subtitle, onEditPhoto, uploading }: ProfileHeaderProps) {
   return (
     <div className="bg-black text-white px-6 pt-12 pb-8">
       <div className="flex items-center gap-4 mb-4">
         <div className="relative">
-          {photoURL ? (
+          {photoUrl ? (
             <img
-              src={photoURL}
+              src={photoUrl}
               alt={`${firstName} ${lastName}`}
               className={`w-20 h-20 rounded-full object-cover ${uploading ? 'opacity-50' : ''}`}
             />

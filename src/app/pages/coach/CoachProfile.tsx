@@ -59,7 +59,7 @@ export function CoachProfile() {
       const storageRef = ref(storage, `profilePhotos/${user.id}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
-      await updateDoc(doc(db, 'users', user.id), { photoURL: downloadURL });
+      await updateDoc(doc(db, 'users', user.id), { photoUrl: downloadURL });
       updateUserPhoto(downloadURL);
     } finally {
       setUploading(false);
@@ -137,7 +137,7 @@ export function CoachProfile() {
         firstName={user?.firstName}
         lastName={user?.lastName}
         email={user?.email}
-        photoURL={user?.photoURL}
+        photoUrl={user?.photoUrl}
         onEditPhoto={handleEditPhoto}
         uploading={uploading}
       />

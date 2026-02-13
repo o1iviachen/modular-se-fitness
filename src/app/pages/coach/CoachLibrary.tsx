@@ -227,7 +227,7 @@ export function CoachLibrary() {
                     Assign to Athlete
                   </button>
                   <button
-                    className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                    className="flex-1 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     onClick={() => navigate(`/coach/exercise/${exercise.id}`)}
                   >
                     View Details

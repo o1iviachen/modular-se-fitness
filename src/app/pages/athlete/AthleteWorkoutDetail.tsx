@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Check, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Check, MessageSquare, Camera, Video, X, Loader2 } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
 import { useAuth } from '../../context/AuthContext';
-import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, saveExerciseResult } from '../../lib/workoutService';
+import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, saveExerciseResult, uploadResultMedia, deleteResultMedia, type ResultMedia } from '../../lib/workoutService';
 import { isoToDisplayDate, isoToDayName, getExerciseLabels } from '../../utils/helpers';
 import { exerciseLibrary } from '../../data/exerciseLibrary';
 
@@ -20,6 +20,7 @@ interface Exercise {
   completed: boolean;
   supersetWithPrev?: boolean;
   result?: string;
+  resultMedia?: ResultMedia[];
 }
 
 export function AthleteWorkoutDetail() {
@@ -59,6 +60,7 @@ export function AthleteWorkoutDetail() {
           completed: ex.completed,
           supersetWithPrev: ex.supersetWithPrev,
           result: ex.result || '',
+          resultMedia: ex.resultMedia || [],
         }));
         setExercises(loaded);
         setWorkoutNotes(workout.workoutNotes || '');
@@ -100,12 +102,12 @@ export function AthleteWorkoutDetail() {
     setSelectedExercise(exercise);
   };
 
-  const handleSaveResult = async (exerciseId: string, result: string) => {
+  const handleSaveResult = async (exerciseId: string, result: string, media?: ResultMedia[]) => {
     const ex = exercises.find(e => e.id === exerciseId);
     if (!ex || !user?.id || !dateString) return;
 
-    setExercises(exercises.map(e => e.id === exerciseId ? { ...e, result } : e));
-    await saveExerciseResult(user.id, dateString, ex.index, result);
+    setExercises(exercises.map(e => e.id === exerciseId ? { ...e, result, resultMedia: media || e.resultMedia } : e));
+    await saveExerciseResult(user.id, dateString, ex.index, result, media);
   };
 
   const handleBackFromExerciseDetail = () => {
@@ -131,6 +133,8 @@ export function AthleteWorkoutDetail() {
   if (selectedExercise) {
     return <ExerciseDetailView
       exercise={selectedExercise}
+      athleteId={user?.id || ''}
+      dateString={dateString || ''}
       onBack={handleBackFromExerciseDetail}
       onToggleComplete={toggleExerciseComplete}
       onSaveResult={handleSaveResult}
@@ -247,6 +251,21 @@ export function AthleteWorkoutDetail() {
               </div>
             )}
 
+            {/* Result Media (if any) */}
+            {exercise.resultMedia && exercise.resultMedia.length > 0 && (
+              <div className="mb-3 flex gap-2 flex-wrap">
+                {exercise.resultMedia.map((media, mediaIdx) => (
+                  <div key={mediaIdx} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+                    {media.type === 'image' ? (
+                      <img src={media.url} alt="Result" className="w-full h-full object-cover" />
+                    ) : (
+                      <video src={media.url} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Add/Edit Results Button */}
             <button
               onClick={() => handleAddResults(exercise)}
@@ -343,18 +362,25 @@ export function AthleteWorkoutDetail() {
 // Exercise Detail View Component
 function ExerciseDetailView({
   exercise,
+  athleteId,
+  dateString,
   onBack,
   onToggleComplete,
   onSaveResult,
 }: {
   exercise: Exercise;
+  athleteId: string;
+  dateString: string;
   onBack: () => void;
   onToggleComplete: (id: string) => void;
-  onSaveResult: (id: string, result: string) => void;
+  onSaveResult: (id: string, result: string, media?: ResultMedia[]) => void;
 }) {
   const [results, setResults] = useState(exercise.result || '');
   const [isComplete, setIsComplete] = useState(exercise.completed);
   const [saving, setSaving] = useState(false);
+  const [media, setMedia] = useState<ResultMedia[]>(exercise.resultMedia || []);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleComplete = () => {
     setIsComplete(!isComplete);
@@ -363,9 +389,37 @@ function ExerciseDetailView({
 
   const handleSave = async () => {
     setSaving(true);
-    await onSaveResult(exercise.id, results);
+    await onSaveResult(exercise.id, results, media);
     setSaving(false);
     onBack();
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !athleteId || !dateString) return;
+
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const uploaded = await uploadResultMedia(athleteId, dateString, exercise.index, file);
+        setMedia(prev => [...prev, uploaded]);
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveMedia = async (idx: number) => {
+    const item = media[idx];
+    try {
+      await deleteResultMedia(item.storagePath);
+    } catch {
+      // File may already be deleted
+    }
+    setMedia(prev => prev.filter((_, i) => i !== idx));
   };
 
   return (
@@ -417,6 +471,61 @@ function ExerciseDetailView({
           />
         </div>
 
+        {/* Media Upload */}
+        <div className="mb-6">
+          <h2 className="text-black text-lg font-semibold mb-3">Photos & Videos</h2>
+
+          {/* Existing media */}
+          {media.length > 0 && (
+            <div className="flex gap-3 flex-wrap mb-3">
+              {media.map((item, idx) => (
+                <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group">
+                  {item.type === 'image' ? (
+                    <img src={item.url} alt="Result" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={item.url} className="w-full h-full object-cover" />
+                  )}
+                  <button
+                    onClick={() => handleRemoveMedia(idx)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5 text-white" />
+                  </button>
+                  {item.type === 'video' && (
+                    <div className="absolute bottom-1 left-1">
+                      <Video className="w-4 h-4 text-white drop-shadow" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4" />
+              )}
+              {uploading ? 'Uploading...' : 'Add Photo / Video'}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
+
         {/* Mark Complete Toggle */}
         <div className="bg-white rounded-xl p-4 mb-6 flex items-center justify-between">
           <span className="text-black font-medium">Mark this activity complete?</span>
@@ -435,7 +544,7 @@ function ExerciseDetailView({
         {/* Save Results Button */}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || uploading}
           className="w-full py-4 bg-[#1a1a1a] text-white font-semibold rounded-xl hover:bg-black/90 transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save results'}

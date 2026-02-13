@@ -19,7 +19,7 @@ interface User {
   role: 'athlete' | 'coach';
   coachCode?: string;
   coachId?: string;
-  photoURL?: string;
+  photoUrl?: string;
 }
 
 interface PendingAthleteSignup {
@@ -40,7 +40,7 @@ interface AuthContextType {
   logout: () => void;
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
-  updateUserPhoto: (photoURL: string) => void;
+  updateUserPhoto: (photoUrl: string) => void;
   isAuthenticated: boolean;
 }
 
@@ -67,7 +67,7 @@ async function fetchUserProfile(uid: string): Promise<User | null> {
     role: data.role,
     coachCode: data.coachCode,
     coachId: data.coachId,
-    photoURL: data.photoURL,
+    photoUrl: data.photoUrl,
   };
 }
 
@@ -78,20 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const profile = await fetchUserProfile(firebaseUser.uid);
-        if (profile) {
+        try {
+          const profile = await fetchUserProfile(firebaseUser.uid);
           setUser(profile);
-        } else {
-          // Auth user exists but no Firestore profile
-          const pending = sessionStorage.getItem(PENDING_SIGNUP_KEY);
-          if (pending) {
-            // Mid-signup flow (Google athlete) — leave auth user, don't set app user
-            setUser(null);
-          } else {
-            // Orphaned auth user — clean up
-            await firebaseUser.delete().catch(() => signOut(auth));
-            setUser(null);
-          }
+        } catch (err) {
+          console.warn('Error fetching user profile:', err);
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -115,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const credential = await signInWithPopup(auth, googleProvider);
     const profile = await fetchUserProfile(credential.user.uid);
     if (!profile) {
-      await credential.user.delete().catch(() => signOut(auth));
+      await signOut(auth);
       throw new Error('No account found. Please sign up first.');
     }
     setUser(profile);
@@ -252,8 +244,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('se_fitness_user');
   };
 
-  const updateUserPhoto = (photoURL: string) => {
-    setUser((prev) => prev ? { ...prev, photoURL } : null);
+  const updateUserPhoto = (photoUrl: string) => {
+    setUser((prev) => prev ? { ...prev, photoUrl } : null);
   };
 
   const connectCoach = async (coachCode: string) => {
