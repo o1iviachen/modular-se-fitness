@@ -97,28 +97,18 @@ export function AthleteGoals() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-white hover:text-[#FFD000] transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          {!isArchived && (
-            <button
-              onClick={handleStartAdd}
-              className="w-10 h-10 bg-[#FFD000] text-black rounded-full flex items-center justify-center hover:bg-[#FFD000]/90 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-white mb-4 hover:text-[#FFD000] transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">{athleteName}'s Goals</h1>
-        <p className="text-gray-400 text-sm mt-1">Track your fitness objectives</p>
+        <p className="text-gray-400 text-sm mt-1">Track your athlete's fitness objectives</p>
       </div>
 
       {/* Content */}
@@ -205,6 +195,19 @@ export function AthleteGoals() {
           )}
         </div>
       </div>
+
+      {/* Add Goal Button */}
+      {!isArchived && (
+        <div className="px-6">
+          <button
+            onClick={handleStartAdd}
+            className="w-full bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Goal</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

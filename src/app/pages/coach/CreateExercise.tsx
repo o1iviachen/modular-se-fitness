@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -8,9 +8,11 @@ import { db } from '../../lib/firebase';
 
 export function CreateExercise() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { exerciseId } = useParams();
   const isEditMode = !!exerciseId;
   const { user } = useAuth();
+  const returnToWorkout = (location.state as any)?.returnToWorkout as { athleteId: string; workoutDate: string; workoutDay: string } | undefined;
   const [formData, setFormData] = useState({
     name: '',
     category: [] as string[],
@@ -72,7 +74,25 @@ export function CreateExercise() {
           createdAt: serverTimestamp(),
         });
       }
-      navigate('/coach/library');
+      if (returnToWorkout && !isEditMode) {
+        navigate(`/coach/workout/${returnToWorkout.workoutDate}`, {
+          state: {
+            athleteId: returnToWorkout.athleteId,
+            workoutDate: returnToWorkout.workoutDate,
+            workoutDay: returnToWorkout.workoutDay,
+            exerciseToAdd: {
+              name: formData.name,
+              sets: '',
+              reps: '',
+              weight: '',
+              notes: '',
+              videoUrl: formData.videoUrl || undefined,
+            },
+          },
+        });
+      } else {
+        navigate('/coach/library');
+      }
     } catch (err) {
       console.error('Failed to save exercise:', err);
       setSaving(false);
@@ -85,11 +105,25 @@ export function CreateExercise() {
 
   const hasUnsavedChanges = formData.name.trim() !== '' || formData.category.length > 0 || formData.description.trim() !== '' || formData.videoUrl.trim() !== '';
 
+  const goBack = () => {
+    if (returnToWorkout) {
+      navigate(`/coach/workout/${returnToWorkout.workoutDate}`, {
+        state: {
+          athleteId: returnToWorkout.athleteId,
+          workoutDate: returnToWorkout.workoutDate,
+          workoutDay: returnToWorkout.workoutDay,
+        },
+      });
+    } else {
+      navigate('/coach/library');
+    }
+  };
+
   const handleBack = () => {
     if (hasUnsavedChanges) {
       if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) return;
     }
-    navigate('/coach/library');
+    goBack();
   };
 
   if (loadingExercise) {
@@ -203,7 +237,7 @@ export function CreateExercise() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/coach/library')}
+            onClick={goBack}
             className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
           >
             Cancel

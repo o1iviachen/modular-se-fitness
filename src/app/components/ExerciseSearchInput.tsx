@@ -11,9 +11,10 @@ interface ExerciseSearchInputProps {
   onSelectExercise?: (data: { name: string; videoUrl?: string }) => void;
   onBlur?: () => void;
   customExercises?: LibraryExercise[];
+  workoutContext?: { athleteId: string; workoutDate: string; workoutDay: string };
 }
 
-export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur, customExercises = [] }: ExerciseSearchInputProps) {
+export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur, customExercises = [], workoutContext }: ExerciseSearchInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,7 +122,7 @@ export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur,
           )}
           {/* Create Custom Exercise */}
           <button
-            onClick={() => navigate('/coach/create-exercise')}
+            onClick={() => navigate('/coach/create-exercise', workoutContext ? { state: { returnToWorkout: workoutContext } } : undefined)}
             className="w-full px-4 py-3 text-left border-t border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm text-[#b8960a] font-medium"
           >
             <Plus className="w-4 h-4" />

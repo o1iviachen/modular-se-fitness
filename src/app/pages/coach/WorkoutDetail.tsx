@@ -254,6 +254,7 @@ export function WorkoutDetail() {
                       value={exercise.name}
                       onChange={(value) => handleUpdateExercise(exercise.id, 'name', value)}
                       customExercises={customExercises}
+                      workoutContext={{ athleteId, workoutDate, workoutDay }}
                       onSelectExercise={(data) => {
                         setExercises(prev => prev.map(ex =>
                           ex.id === exercise.id ? { ...ex, name: data.name, videoUrl: data.videoUrl } : ex
