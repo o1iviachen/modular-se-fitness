@@ -7,6 +7,7 @@ interface WorkoutCardProps {
   workout: string | null;
   completed: boolean;
   exercises: Array<{ name: string; sets: string; supersetWithPrev?: boolean }>;
+  isToday?: boolean;
   onClick?: () => void;
   onAddWorkout?: (e: React.MouseEvent) => void;
   onSetRestDay?: (e: React.MouseEvent) => void;
@@ -19,6 +20,7 @@ export function WorkoutCard({
   workout,
   completed,
   exercises,
+  isToday,
   onClick,
   onAddWorkout,
   onSetRestDay,
@@ -38,7 +40,7 @@ export function WorkoutCard({
         onClick={isClickable ? onClick : undefined}
       >
         <div className="text-sm text-gray-700">
-          {date} <span className="text-xs">·</span> {day}
+          {date} <span className="text-xs">·</span> {day}{isToday ? ' (Today)' : ''}
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {showActions ? (

@@ -3,17 +3,17 @@ import { ArrowLeft, Mail, ChevronRight, ExternalLink, ShieldCheck } from 'lucide
 
 
 const athleteFaq = [
-  { question: 'How do I complete a workout?', answer: 'Tap on a workout, check off exercises as you complete them.' },
-  { question: 'How do I message my coach?', answer: 'Go to Messages and select your coach to start a conversation.' },
-  { question: 'How do I track my progress?', answer: 'View your profile to see stats, goals, and workout history.' },
-  { question: 'What if I need to modify an exercise?', answer: 'Contact your coach through messages to request modifications.' }
+  { question: 'How do I change my workout schedule?', answer: 'Your coach manages your workout schedule. Send them a message to request changes.' },
+  { question: 'How do I track my progress?', answer: 'Complete your workouts and log your results. Your stats will automatically update on your profile.' },
+  { question: 'What if I miss a workout?', answer: "Don't worry! Your coach can adjust your schedule. Just get back on track with your next workout." },
 ];
 
 const coachFaq = [
-  { question: 'How do I invite new athletes?', answer: 'Share your unique coach code from your profile.' },
-  { question: 'How do I create workout programs?', answer: 'Navigate to an athlete\'s calendar and assign workouts.' },
-  { question: 'Can I customize exercises?', answer: 'Yes, use the Exercise Library to create custom exercises.' },
-  { question: 'How do I track athlete progress?', answer: 'View athlete details to see stats and workout history' }
+  { question: 'How do I add a new athlete?', answer: 'Share your coach code with athletes from your profile page. Once they enter it during signup, they\'ll appear on your dashboard.' },
+  { question: 'How do I assign workouts?', answer: 'Go to an athlete\'s profile, tap Workouts, and create a new workout. You can also duplicate existing workouts from your library.' },
+  { question: 'How do I create custom exercises?', answer: 'Go to your Library tab, tap the + button, and fill in the exercise details. Custom exercises will appear alongside the default library.' },
+  { question: 'How do I archive an athlete?', answer: 'On your home screen, long press an athlete card or use the archive option in their profile. Archived athletes can be reactivated anytime.' },
+  { question: 'How do I message my athletes?', answer: 'Go to the Inbox tab to see all conversations. Tap on an athlete to open the chat and send messages.' },
 ];
 
 export function HelpSupport({ role }: { role: 'athlete' | 'coach' }) {

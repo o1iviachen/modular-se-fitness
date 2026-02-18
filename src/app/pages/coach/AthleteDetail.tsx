@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { WorkoutCard } from '../../components/WorkoutCard';
+import { PageCard } from '../../components/ui/page-card';
 import { getCurrentWeekDates, isoToDisplayDate, getTodayISO } from '../../utils/helpers';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -235,20 +236,24 @@ export function AthleteDetail() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="px-6 -mt-4 mb-6 grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{stats.workoutsCompleted}</div>
-          <div className="text-xs text-gray-500">Workouts</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{stats.workoutCompletionRate}%</div>
-          <div className="text-xs text-gray-500">Completion</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl mb-1">{stats.streak}</div>
-          <div className="text-xs text-gray-500">Day Streak</div>
-        </div>
+      {/* Stats */}
+      <div className="px-6 -mt-4 mb-6">
+        <PageCard>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.workoutsCompleted}</div>
+              <div className="text-xs text-gray-500">Workouts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.workoutCompletionRate}%</div>
+              <div className="text-xs text-gray-500">Completion</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-1">{stats.streak}</div>
+              <div className="text-xs text-gray-500">Day Streak</div>
+            </div>
+          </div>
+        </PageCard>
       </div>
 
       {/* Personal Information */}
@@ -294,6 +299,7 @@ export function AthleteDetail() {
               workout={workout.workout}
               completed={workout.completed}
               exercises={workout.exercises}
+              isToday={workout.date === getTodayISO()}
               onClick={!athlete.isArchived ? () => handleWorkoutClick(workout) : undefined}
               onAddWorkout={!athlete.isArchived ? (e) => handleAddWorkout(workout, e) : undefined}
               onSetRestDay={!athlete.isArchived ? (e) => handleSetRestDay(workout, e) : undefined}

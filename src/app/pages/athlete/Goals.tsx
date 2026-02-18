@@ -169,15 +169,13 @@ export function Goals() {
         </div>
 
         {/* Add Goal Button */}
-        <div className="px-6">
-          <button
-            onClick={handleStartAdd}
-            className="w-full bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add Goal</span>
-          </button>
-        </div>
+        <button
+          onClick={handleStartAdd}
+          className="w-full mt-6 bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm font-medium"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Add Goal</span>
+        </button>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth, isoToDisplayDate, isoToDayName } from '../../utils/helpers';
+import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth, isoToDisplayDate, isoToDayName, getTodayISO } from '../../utils/helpers';
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -166,6 +166,7 @@ export function AthleteWorkouts() {
               workout={workout.workout}
               completed={workout.completed}
               exercises={workout.exercises}
+              isToday={workout.date === getTodayISO()}
               onClick={!isArchived ? () => handleWorkoutClick(workout) : undefined}
               onAddWorkout={!isArchived ? (e) => handleAddWorkout(workout, e) : undefined}
               onSetRestDay={!isArchived ? (e) => handleSetRestDay(workout, e) : undefined}

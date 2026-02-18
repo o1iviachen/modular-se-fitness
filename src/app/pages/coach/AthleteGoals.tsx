@@ -194,20 +194,18 @@ export function AthleteGoals() {
             )
           )}
         </div>
-      </div>
 
-      {/* Add Goal Button */}
-      {!isArchived && (
-        <div className="px-6">
+        {/* Add Goal Button */}
+        {!isArchived && (
           <button
             onClick={handleStartAdd}
-            className="w-full bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm font-medium"
+            className="w-full mt-6 bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm font-medium"
           >
             <Plus className="w-5 h-5" />
             <span>Add Goal</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

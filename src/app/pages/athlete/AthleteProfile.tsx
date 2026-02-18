@@ -23,6 +23,7 @@ export function AthleteProfile() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Load physical info from Firestore
   useEffect(() => {
@@ -65,10 +66,12 @@ export function AthleteProfile() {
   }, [user?.id]);
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      logout();
-      navigate('/login');
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const handleDeleteAccount = async () => {
@@ -103,8 +106,6 @@ export function AthleteProfile() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
-
-  const hasPhysicalInfo = profile.age || profile.gender || profile.weight || profile.height;
 
   return (
     <div className="min-h-full bg-gray-50 pb-6">
@@ -156,34 +157,21 @@ export function AthleteProfile() {
             <div className="text-sm text-gray-600 mb-1">Name</div>
             <div className="text-black">{user?.firstName} {user?.lastName}</div>
           </div>
-          {hasPhysicalInfo && (
-            <>
-              {profile.age && (
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Age</div>
-                  <div className="text-black">{profile.age}</div>
-                </div>
-              )}
-              {profile.gender && (
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Gender</div>
-                  <div className="text-black">{profile.gender}</div>
-                </div>
-              )}
-              {profile.height && (
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Height</div>
-                  <div className="text-black">{profile.height} cm</div>
-                </div>
-              )}
-              {profile.weight && (
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Weight</div>
-                  <div className="text-black">{profile.weight} kg</div>
-                </div>
-              )}
-            </>
-          )}
+          <div>
+            <div className="text-sm text-gray-600 mb-1">Role</div>
+            <div className="text-black">Athlete</div>
+          </div>
+          {[
+            { label: 'Age', value: profile.age },
+            { label: 'Gender', value: profile.gender },
+            { label: 'Height', value: profile.height ? `${profile.height} cm` : null },
+            { label: 'Weight', value: profile.weight ? `${profile.weight} kg` : null },
+          ].filter(f => f.value).map(field => (
+            <div key={field.label}>
+              <div className="text-sm text-gray-600 mb-1">{field.label}</div>
+              <div className="text-black">{field.value}</div>
+            </div>
+          ))}
         </PageCard>
       </div>
 
@@ -244,6 +232,37 @@ export function AthleteProfile() {
           <span>Delete Account</span>
         </button>
       </div>
+
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-semibold">Log Out</h2>
+                <button onClick={() => setShowLogoutModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">Are you sure you want to log out?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium hover:bg-red-700 transition-colors"
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Modal */}
       {showDeleteModal && (

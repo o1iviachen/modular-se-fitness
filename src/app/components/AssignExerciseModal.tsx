@@ -111,7 +111,8 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
           weight: '',
           notes: '',
           videoUrl: exercise.videoUrl
-        }
+        },
+        cameFromLibrary: true
       }
     });
     onClose();

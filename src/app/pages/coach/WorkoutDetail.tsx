@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare, Copy, Check } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
 import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 
@@ -22,6 +22,7 @@ interface Exercise {
   notes: string;
   videoUrl?: string;
   supersetWithPrev: boolean;
+  completed?: boolean;
   result?: string;
   resultMedia?: ResultMedia[];
 }
@@ -30,11 +31,13 @@ export function WorkoutDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { workoutId } = useParams();
-  const { workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null } = location.state || {};
+  const { workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null, cameFromLibrary = false } = location.state || {};
   const cameFromCreateExercise = !!exerciseToAdd;
 
   const goBack = () => {
-    if (cameFromCreateExercise && athleteId) {
+    if (cameFromLibrary) {
+      navigate('/coach/library');
+    } else if (cameFromCreateExercise && athleteId) {
       navigate(`/coach/athlete/${athleteId}/workouts`);
     } else {
       navigate(-1);
@@ -96,6 +99,7 @@ export function WorkoutDetail() {
           notes: ex.notes,
           videoUrl: ex.videoUrl || exerciseLibrary.find(lib => lib.name === ex.name)?.videoUrl,
           supersetWithPrev: ex.supersetWithPrev || false,
+          completed: ex.completed || false,
           result: ex.result || '',
           resultMedia: ex.resultMedia || [],
         }));
@@ -245,7 +249,8 @@ export function WorkoutDetail() {
           </div>
         </div>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
-        {workoutDay && workoutDate && <h1 className="text-lg font-semibold">{workoutDay} <span className="text-sm">·</span> {isoToDisplayDate(workoutDate)}</h1>}
+        <h1 className="text-xl font-semibold">Assign Workout</h1>
+        {workoutDay && workoutDate && <p className="text-gray-400 text-sm mt-1">{workoutDay} · {isoToDisplayDate(workoutDate)}</p>}
       </div>
 
       <div className="px-6 py-6">
@@ -433,12 +438,17 @@ export function WorkoutDetail() {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteExercise(exercise.id)}
-                    className="text-red-500 hover:text-red-700 transition-colors mt-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button
+                      onClick={() => handleDeleteExercise(exercise.id)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${exercise.completed ? 'bg-green-500' : 'bg-gray-300'}`}>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
                 </div>
               </div>
               </div>

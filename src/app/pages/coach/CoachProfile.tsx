@@ -19,37 +19,30 @@ export function CoachProfile() {
   const [searchParams] = useSearchParams();
   const shouldHighlight = searchParams.get('highlight') === 'code';
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     if (!user?.coachCode) return;
-    
-    const textArea = document.createElement('textarea');
-    textArea.value = user.coachCode;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.select();
-    
     try {
-      document.execCommand('copy');
+      await navigator.clipboard.writeText(user.coachCode);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
-    } catch (err) {
-      console.log('Copy failed:', err);
+    } catch {
+      // Clipboard API not available
     }
-    
-    document.body.removeChild(textArea);
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      logout();
-      navigate('/login');
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const handleDeleteAccount = async () => {
@@ -116,23 +109,25 @@ export function CoachProfile() {
       const athletes = athleteSnap.docs;
       const activeCount = athletes.filter(d => !d.data().isArchived).length;
 
-      // Count workouts across all athletes
-      let totalWorkouts = 0;
-      let thisMonthWorkouts = 0;
+      // Count workouts across all athletes (parallel)
       const currentMonth = new Date().toISOString().slice(0, 7);
-
-      for (const athleteDoc of athletes) {
-        const workoutsSnap = await getDocs(collection(db, 'users', athleteDoc.id, 'workouts'));
-        for (const wDoc of workoutsSnap.docs) {
-          const data = wDoc.data();
-          if (!data.isRestDay) {
-            totalWorkouts++;
-            if (data.date?.startsWith(currentMonth)) {
-              thisMonthWorkouts++;
+      const counts = await Promise.all(
+        athletes.map(async (athleteDoc) => {
+          const workoutsSnap = await getDocs(collection(db, 'users', athleteDoc.id, 'workouts'));
+          let total = 0;
+          let thisMonth = 0;
+          for (const wDoc of workoutsSnap.docs) {
+            const data = wDoc.data();
+            if (!data.isRestDay) {
+              total++;
+              if (data.date?.startsWith(currentMonth)) thisMonth++;
             }
           }
-        }
-      }
+          return { total, thisMonth };
+        })
+      );
+      const totalWorkouts = counts.reduce((sum, c) => sum + c.total, 0);
+      const thisMonthWorkouts = counts.reduce((sum, c) => sum + c.thisMonth, 0);
 
       setStats([
         { label: 'Active Athletes', value: String(activeCount) },
@@ -269,6 +264,37 @@ export function CoachProfile() {
           <span>Delete Account</span>
         </button>
       </div>
+
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-semibold">Log Out</h2>
+                <button onClick={() => setShowLogoutModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">Are you sure you want to log out?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium hover:bg-red-700 transition-colors"
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Modal */}
       {showDeleteModal && (

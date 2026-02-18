@@ -116,7 +116,7 @@ export function AthleteWorkoutDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="bg-[#1a1a1a] text-white px-4 pt-6 pb-6">
+        <div className="bg-black text-white px-4 pt-6 pb-6">
           <button onClick={() => navigate(-1)} className="text-white hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -143,7 +143,7 @@ export function AthleteWorkoutDetail() {
   return (
     <div className="min-h-screen bg-gray-50 pb-2">
       {/* Header */}
-      <div className="bg-[#1a1a1a] text-white px-4 pt-6 pb-6">
+      <div className="bg-black text-white px-4 pt-6 pb-6">
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} className="text-white hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -212,7 +212,7 @@ export function AthleteWorkoutDetail() {
             {/* Video Embed */}
             {exercise.videoUrl && (
               <div className="flex justify-center mb-4">
-                <div className="w-3/5 aspect-[9/16] max-h-[320px] rounded-xl overflow-hidden">
+                <div className="w-full aspect-video rounded-xl overflow-hidden">
                   <iframe
                     src={toEmbedUrl(exercise.videoUrl!)}
                     title={exercise.name}
@@ -435,7 +435,7 @@ function ExerciseDetailView({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-[#1a1a1a] text-white px-4 py-4 flex items-center">
+      <div className="bg-black text-white px-4 py-4 flex items-center">
         <button onClick={handleBackWithCheck} className="text-white hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -555,7 +555,7 @@ function ExerciseDetailView({
         <button
           onClick={handleSave}
           disabled={saving || uploading}
-          className="w-full py-4 bg-[#1a1a1a] text-white font-semibold rounded-xl hover:bg-black/90 transition-colors disabled:opacity-50"
+          className="w-full py-4 bg-black text-white font-semibold rounded-xl hover:bg-black/90 transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save results'}
         </button>
