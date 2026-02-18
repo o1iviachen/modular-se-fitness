@@ -7,7 +7,10 @@ import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
 import { saveWorkout, getWorkout, copyWorkout, WorkoutExercise } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
-import { exerciseLibrary } from '../../data/exerciseLibrary';
+import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
+import { useAuth } from '../../context/AuthContext';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 interface Exercise {
   id: number;
@@ -27,6 +30,7 @@ export function WorkoutDetail() {
   const { workoutId } = useParams();
   const { workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null } = location.state || {};
 
+  const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workoutNotes, setWorkoutNotes] = useState('');
   const [loading, setLoading] = useState(true);
@@ -34,6 +38,30 @@ export function WorkoutDetail() {
   const [showComments, setShowComments] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
+
+  // Load custom exercises from Firestore
+  useEffect(() => {
+    if (!user?.id) return;
+    const q = query(
+      collection(db, 'users', user.id, 'customExercises'),
+      orderBy('createdAt', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      setCustomExercises(snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id as any,
+          name: data.name,
+          source: 'custom',
+          category: data.category,
+          equipment: data.equipment || 'Bodyweight',
+          description: data.description,
+          videoUrl: data.videoUrl || undefined,
+        };
+      }));
+    });
+  }, [user?.id]);
 
   // Load existing workout from Firestore on mount
   useEffect(() => {
@@ -226,6 +254,7 @@ export function WorkoutDetail() {
                     <ExerciseSearchInput
                       value={exercise.name}
                       onChange={(value) => handleUpdateExercise(exercise.id, 'name', value)}
+                      customExercises={customExercises}
                       onSelectExercise={(data) => {
                         setExercises(prev => prev.map(ex =>
                           ex.id === exercise.id ? { ...ex, name: data.name, videoUrl: data.videoUrl } : ex
@@ -266,7 +295,7 @@ export function WorkoutDetail() {
                       value={exercise.notes}
                       onChange={(e) => handleUpdateExercise(exercise.id, 'notes', e.target.value)}
                       className="w-full bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                      placeholder="Notes (optional)"
+                      placeholder="Notes"
                     />
                     {exercise.videoUrl && (
                       <button

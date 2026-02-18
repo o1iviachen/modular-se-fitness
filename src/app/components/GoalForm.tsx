@@ -30,7 +30,7 @@ export function GoalForm({ formData, setFormData, onSave, onCancel, title, saveL
               value={formData.target}
               onChange={(e) => setFormData({ ...formData, target: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-              placeholder="e.g., 225 lbs"
+              placeholder="e.g., 100 kg"
             />
           </div>
           <div>

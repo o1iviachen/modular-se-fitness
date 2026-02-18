@@ -1,5 +1,36 @@
 // Helper utility functions
 
+// ===== Video URL Utilities =====
+
+// Convert regular YouTube/Vimeo URLs to embeddable format
+export const toEmbedUrl = (url: string): string => {
+  if (!url) return url;
+
+  // YouTube: youtube.com/watch?v=ID or youtu.be/ID
+  const ytWatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (ytWatch) return `https://www.youtube.com/embed/${ytWatch[1]}`;
+
+  // Vimeo: vimeo.com/ID
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo && !url.includes('player.vimeo.com')) return `https://player.vimeo.com/video/${vimeo[1]}`;
+
+  // Already an embed URL or unknown format — return as-is
+  return url;
+};
+
+// ===== Category Utilities =====
+
+// Format category for display (handles both string and string[] from Firestore)
+export const formatCategory = (category: string | string[]): string => {
+  return Array.isArray(category) ? category.join(', ') : category;
+};
+
+// Check if an exercise's category matches a filter value
+export const categoryMatches = (category: string | string[], filter: string): boolean => {
+  if (filter === 'all') return true;
+  return Array.isArray(category) ? category.includes(filter) : category === filter;
+};
+
 // ===== Date Conversion Utilities =====
 
 // Convert a Date object to ISO date string "2026-02-05"

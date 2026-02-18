@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { ChevronRight } from 'lucide-react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 
 interface Conversation {
   id: string;
+  coachId: string;
   coachName: string;
   lastMessage: string;
   lastMessageAt: any;
@@ -23,7 +24,7 @@ export function AthleteMessages() {
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'conversations'), where('athleteId', '==', user.id));
-    const unsubscribe = onSnapshot(q, (snap) => {
+    const unsubscribe = onSnapshot(q, async (snap) => {
       const convos = snap.docs.map((d) => {
         const data = d.data();
         const initials = data.coachName
@@ -33,6 +34,7 @@ export function AthleteMessages() {
         const lastMsgAt = data.lastMessageAt?.toMillis?.() || 0;
         return {
           id: d.id,
+          coachId: data.coachId || '',
           coachName: data.coachName || 'Coach',
           lastMessage: data.lastMessage || 'No messages yet',
           lastMessageAt: data.lastMessageAt,
@@ -40,7 +42,19 @@ export function AthleteMessages() {
           hasUnread: lastMsgAt > lastReadAt && !!data.lastMessage,
         };
       });
-      setConversations(convos);
+
+      // Filter out deleted users
+      const uniqueIds = [...new Set(convos.map(c => c.coachId).filter(Boolean))];
+      const existingUserIds = new Set<string>();
+      await Promise.all(uniqueIds.map(async (id) => {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', id));
+          if (userSnap.exists()) existingUserIds.add(id);
+        } catch {}
+      }));
+      const activeConvos = convos.filter(c => existingUserIds.has(c.coachId));
+
+      setConversations(activeConvos);
     });
     return unsubscribe;
   }, [user]);

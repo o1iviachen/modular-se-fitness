@@ -1,22 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
-import { exerciseLibrary } from '../data/exerciseLibrary';
+import { Search, X, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { exerciseLibrary, LibraryExercise } from '../data/exerciseLibrary';
 import { getSourceBadgeColor, getSourceName } from '../utils/exerciseHelpers';
+import { formatCategory } from '../utils/helpers';
 
 interface ExerciseSearchInputProps {
   value: string;
   onChange: (value: string) => void;
   onSelectExercise?: (data: { name: string; videoUrl?: string }) => void;
   onBlur?: () => void;
+  customExercises?: LibraryExercise[];
 }
 
-export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur }: ExerciseSearchInputProps) {
+export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur, customExercises = [] }: ExerciseSearchInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  const filteredExercises = exerciseLibrary.filter(exercise =>
+  const allExercises = [...exerciseLibrary, ...customExercises];
+
+  const filteredExercises = allExercises.filter(exercise =>
     exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -100,19 +106,27 @@ export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur 
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {exercise.category} • {exercise.equipment}
+                    {formatCategory(exercise.category)} • {exercise.equipment}
                   </div>
                 </button>
               ))}
             </div>
           ) : (
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 mb-2">No exercises found in library</p>
+              <p className="text-sm text-gray-500 mb-2">No exercises found</p>
               <p className="text-xs text-gray-400">
-                Continue typing to use "{searchQuery}" as a custom exercise
+                Continue typing to use "{searchQuery}" as a custom name
               </p>
             </div>
           )}
+          {/* Create Custom Exercise */}
+          <button
+            onClick={() => navigate('/coach/create-exercise')}
+            className="w-full px-4 py-3 text-left border-t border-gray-100 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm text-[#b8960a] font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Create Custom Exercise
+          </button>
         </div>
       )}
     </div>

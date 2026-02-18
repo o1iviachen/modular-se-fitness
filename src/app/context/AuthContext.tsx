@@ -5,8 +5,11 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../lib/firebase';
 
 const PENDING_SIGNUP_KEY = 'pending_athlete_signup';
@@ -38,6 +41,7 @@ interface AuthContextType {
   signup: (email: string, password: string, firstName: string, lastName: string, role: 'athlete' | 'coach') => Promise<void>;
   signupWithGoogle: (role: 'athlete' | 'coach', firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
+  deleteAccount: (password: string) => Promise<void>;
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
   updateUserPhoto: (photoUrl: string) => void;
@@ -244,6 +248,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('se_fitness_user');
   };
 
+  const deleteAccount = async (password: string) => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || !user) throw new Error('Not authenticated');
+    const uid = firebaseUser.uid;
+
+    // Reauthenticate first
+    if (firebaseUser.email) {
+      const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+      await reauthenticateWithCredential(firebaseUser, credential);
+    }
+
+    // Clean up Firestore data FIRST (while auth is still valid for rules)
+    const subcollections = ['workouts', 'goals', 'documents', 'customExercises'];
+    for (const sub of subcollections) {
+      const snap = await getDocs(collection(db, 'users', uid, sub));
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+      }
+    }
+    await deleteDoc(doc(db, 'users', uid));
+
+    // Delete Firebase Auth user last
+    await deleteUser(firebaseUser);
+
+    // Clear local state
+    setUser(null);
+    sessionStorage.removeItem(PENDING_SIGNUP_KEY);
+    localStorage.removeItem('se_fitness_user');
+  };
+
   const updateUserPhoto = (photoUrl: string) => {
     setUser((prev) => prev ? { ...prev, photoUrl } : null);
   };
@@ -263,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

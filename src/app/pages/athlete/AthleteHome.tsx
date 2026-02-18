@@ -89,7 +89,7 @@ export function AthleteHome() {
   const todayWorkout = allWorkouts.find(w => w.date === todayISO);
   const workoutsInSelectedMonth = filterWorkoutsByMonth(allWorkouts, selectedMonth);
 
-  const upcomingWorkouts = allWorkouts.filter(w => w.date > todayISO);
+  const upcomingWorkouts = allWorkouts.filter(w => w.date > todayISO).reverse();
   const pastWorkouts = workoutsInSelectedMonth.filter(w => w.date < todayISO);
 
   const displayWorkouts = activeTab === 'upcoming' ? upcomingWorkouts : pastWorkouts;

@@ -298,7 +298,7 @@ export function AthleteDetail() {
         >
           <div className="text-left">
             <div className="text-lg font-semibold mb-1">Goals</div>
-            <div className="text-xs text-gray-500">View & manage goals</div>
+            <div className="text-xs text-gray-500">View and manage goals</div>
           </div>
         </button>
         <button
@@ -307,7 +307,7 @@ export function AthleteDetail() {
         >
           <div className="text-left">
             <div className="text-lg font-semibold mb-1">Documents</div>
-            <div className="text-xs text-gray-500">View & upload files</div>
+            <div className="text-xs text-gray-500">View and upload files</div>
           </div>
         </button>
       </div>

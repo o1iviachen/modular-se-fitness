@@ -4,7 +4,7 @@ import { ArrowLeft, Check, MessageSquare, Camera, Video, X, Loader2 } from 'luci
 import { WorkoutComments } from '../../components/WorkoutComments';
 import { useAuth } from '../../context/AuthContext';
 import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, saveExerciseResult, uploadResultMedia, deleteResultMedia, type ResultMedia } from '../../lib/workoutService';
-import { isoToDisplayDate, isoToDayName, getExerciseLabels } from '../../utils/helpers';
+import { isoToDisplayDate, isoToDayName, getExerciseLabels, toEmbedUrl } from '../../utils/helpers';
 import { exerciseLibrary } from '../../data/exerciseLibrary';
 
 interface Exercise {
@@ -214,7 +214,7 @@ export function AthleteWorkoutDetail() {
             {exercise.videoUrl && (
               <div className="relative mb-4 rounded-xl overflow-hidden">
                 <iframe
-                  src={exercise.videoUrl}
+                  src={toEmbedUrl(exercise.videoUrl!)}
                   title={exercise.name}
                   className="w-full h-48"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -382,6 +382,15 @@ function ExerciseDetailView({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const hasUnsavedResults = results !== (exercise.result || '') || media.length !== (exercise.resultMedia?.length || 0);
+
+  const handleBackWithCheck = () => {
+    if (hasUnsavedResults) {
+      if (!window.confirm('You have unsaved results. Are you sure you want to leave?')) return;
+    }
+    onBack();
+  };
+
   const handleToggleComplete = () => {
     setIsComplete(!isComplete);
     onToggleComplete(exercise.id);
@@ -426,7 +435,7 @@ function ExerciseDetailView({
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-[#1a1a1a] text-white px-4 py-4 flex items-center">
-        <button onClick={onBack} className="text-white hover:text-[#FFD000] transition-colors">
+        <button onClick={handleBackWithCheck} className="text-white hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-medium flex-1 text-center mr-6">{exercise.name}</h1>
@@ -473,7 +482,7 @@ function ExerciseDetailView({
 
         {/* Media Upload */}
         <div className="mb-6">
-          <h2 className="text-black text-lg font-semibold mb-3">Photos & Videos</h2>
+          <h2 className="text-black text-lg font-semibold mb-3">Photos and Videos</h2>
 
           {/* Existing media */}
           {media.length > 0 && (

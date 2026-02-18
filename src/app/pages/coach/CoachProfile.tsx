@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Copy, Check, LogOut } from 'lucide-react';
+import { Copy, Check, LogOut, Trash2, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
@@ -11,7 +11,7 @@ import { db, storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export function CoachProfile() {
-  const { user, logout, updateUserPhoto } = useAuth();
+  const { user, logout, deleteAccount, updateUserPhoto } = useAuth();
   const [codeCopied, setCodeCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
@@ -40,10 +40,28 @@ export function CoachProfile() {
     document.body.removeChild(textArea);
   };
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       logout();
       navigate('/login');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteAccount(deletePassword);
+      navigate('/login');
+    } catch {
+      setDeleteError('Incorrect password or failed to delete account.');
+      setDeleting(false);
     }
   };
 
@@ -225,13 +243,13 @@ export function CoachProfile() {
             Notification Settings
           </ListItemButton>
           <ListItemButton onClick={() => navigate('/coach/help-support')} noBorder>
-            Help & Support
+            Help and Support
           </ListItemButton>
         </div>
       </div>
 
       {/* Logout */}
-      <div className="px-6">
+      <div className="px-6 mb-3">
         <button
           onClick={handleLogout}
           className="w-full bg-red-50 text-red-600 rounded-xl p-5 shadow-sm flex items-center justify-center gap-3 hover:bg-red-100 transition-colors"
@@ -240,6 +258,58 @@ export function CoachProfile() {
           <span>Log Out</span>
         </button>
       </div>
+
+      {/* Delete Account */}
+      <div className="px-6">
+        <button
+          onClick={() => { setShowDeleteModal(true); setDeletePassword(''); setDeleteError(''); }}
+          className="w-full text-red-400 text-sm py-3 hover:text-red-600 transition-colors flex items-center justify-center gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Delete Account</span>
+        </button>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-semibold">Delete Account</h2>
+                <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">This will permanently delete your account and all data. Enter your password to confirm.</p>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+                onKeyDown={(e) => e.key === 'Enter' && handleDeleteAccount()}
+              />
+              {deleteError && <p className="text-red-500 text-sm mb-4">{deleteError}</p>}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 bg-gray-100 text-black rounded-xl py-3 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || !deletePassword}
+                  className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

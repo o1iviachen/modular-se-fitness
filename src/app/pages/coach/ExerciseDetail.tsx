@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
+import { toEmbedUrl, formatCategory } from '../../utils/helpers';
 
 export function ExerciseDetail() {
   const { exerciseId } = useParams();
@@ -76,7 +77,7 @@ export function ExerciseDetail() {
             {getSourceName(exercise.source)}
           </span>
         </div>
-        <p className="text-gray-400 text-sm">{exercise.category} • {exercise.equipment}</p>
+        <p className="text-gray-400 text-sm">{formatCategory(exercise.category)} • {exercise.equipment}</p>
       </div>
 
       {/* Video Section */}
@@ -85,7 +86,7 @@ export function ExerciseDetail() {
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="aspect-video bg-black relative">
               <iframe
-                src={exercise.videoUrl}
+                src={toEmbedUrl(exercise.videoUrl!)}
                 className="w-full h-full"
                 frameBorder="0"
                 allow="autoplay; fullscreen; picture-in-picture"
@@ -112,7 +113,7 @@ export function ExerciseDetail() {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-600">Category</span>
-              <span className="font-medium">{exercise.category}</span>
+              <span className="font-medium">{formatCategory(exercise.category)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Equipment</span>

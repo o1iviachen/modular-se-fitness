@@ -11,7 +11,7 @@ interface Exercise {
   id: number;
   name: string;
   source: string;
-  category: string;
+  category: string | string[];
   equipment: string;
   videoUrl?: string;
 }
@@ -52,7 +52,16 @@ export function AssignExerciseModal({ exercise, onClose }: AssignExerciseModalPr
           lastName: info.lastName,
           email: info.email,
         }));
-        setAthletes(list);
+        // Filter out deleted athletes
+        const activeList = await Promise.all(
+          list.map(async (a) => {
+            try {
+              const userSnap = await getDoc(doc(db, 'users', a.id));
+              return userSnap.exists() ? a : null;
+            } catch { return null; }
+          })
+        );
+        setAthletes(activeList.filter((a): a is FirestoreAthlete => a !== null));
       }
       setLoading(false);
     };

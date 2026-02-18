@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +20,7 @@ export function AthleteEditProfile() {
     weight: ''
   });
   const [loaded, setLoaded] = useState(false);
+  const loadedDataRef = useRef({ firstName: '', lastName: '', age: '', gender: '', height: '', weight: '' });
 
   // Load existing profile data from Firestore
   useEffect(() => {
@@ -27,7 +28,7 @@ export function AthleteEditProfile() {
     getDoc(doc(db, 'users', user.id)).then((snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        setFormData({
+        const initial = {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
@@ -35,7 +36,9 @@ export function AthleteEditProfile() {
           gender: data.gender || '',
           height: data.height != null ? String(data.height) : '',
           weight: data.weight != null ? String(data.weight) : '',
-        });
+        };
+        setFormData(initial);
+        loadedDataRef.current = { firstName: initial.firstName, lastName: initial.lastName, age: initial.age, gender: initial.gender, height: initial.height, weight: initial.weight };
       }
       setLoaded(true);
     });
@@ -43,6 +46,20 @@ export function AthleteEditProfile() {
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const hasChanges = () => {
+    const l = loadedDataRef.current;
+    return formData.firstName !== l.firstName || formData.lastName !== l.lastName ||
+      formData.age !== l.age || formData.gender !== l.gender ||
+      formData.height !== l.height || formData.weight !== l.weight;
+  };
+
+  const handleBack = () => {
+    if (hasChanges()) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to go back?')) return;
+    }
+    navigate(-1);
   };
 
   const handleSave = async () => {
@@ -63,7 +80,7 @@ export function AthleteEditProfile() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
-        <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
+        <button onClick={handleBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />

@@ -66,7 +66,7 @@ export function Documents() {
           </div>
         ) : (
           <div className="bg-white rounded-xl p-8 text-center">
-            <p className="text-gray-500">No documents yet</p>
+            <p className="text-gray-500">Documents uploaded by your coach will appear here</p>
           </div>
         )}
       </div>

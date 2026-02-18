@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Search, ChevronRight } from 'lucide-react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 
 interface Conversation {
   id: string;
+  athleteId: string;
   athleteName: string;
   lastMessage: string;
   lastMessageAt: any;
@@ -24,7 +25,7 @@ export function CoachInbox() {
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'conversations'), where('coachId', '==', user.id));
-    const unsubscribe = onSnapshot(q, (snap) => {
+    const unsubscribe = onSnapshot(q, async (snap) => {
       const convos = snap.docs.map((d) => {
         const data = d.data();
         const initials = data.athleteName
@@ -34,6 +35,7 @@ export function CoachInbox() {
         const lastMsgAt = data.lastMessageAt?.toMillis?.() || 0;
         return {
           id: d.id,
+          athleteId: data.athleteId || '',
           athleteName: data.athleteName || 'Athlete',
           lastMessage: data.lastMessage || 'No messages yet',
           lastMessageAt: data.lastMessageAt,
@@ -41,12 +43,24 @@ export function CoachInbox() {
           hasUnread: lastMsgAt > lastReadAt && !!data.lastMessage,
         };
       });
-      convos.sort((a, b) => {
+
+      // Filter out deleted users
+      const uniqueIds = [...new Set(convos.map(c => c.athleteId).filter(Boolean))];
+      const existingUserIds = new Set<string>();
+      await Promise.all(uniqueIds.map(async (id) => {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', id));
+          if (userSnap.exists()) existingUserIds.add(id);
+        } catch {}
+      }));
+      const activeConvos = convos.filter(c => existingUserIds.has(c.athleteId));
+
+      activeConvos.sort((a, b) => {
         const aTime = a.lastMessageAt?.toMillis?.() || 0;
         const bTime = b.lastMessageAt?.toMillis?.() || 0;
         return bTime - aTime;
       });
-      setConversations(convos);
+      setConversations(activeConvos);
     });
     return unsubscribe;
   }, [user]);

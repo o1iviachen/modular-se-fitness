@@ -11,6 +11,7 @@ import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
 import { EquipmentFilterModal } from '../../components/EquipmentFilterModal';
 import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
+import { formatCategory, categoryMatches } from '../../utils/helpers';
 
 const exerciseSources = [
   { id: 'all', name: 'All Exercises' },
@@ -89,7 +90,7 @@ export function CoachLibrary() {
                          exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          exercise.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSource = selectedSource === 'all' || exercise.source === selectedSource;
-    const matchesCategory = selectedCategory === 'all' || exercise.category === selectedCategory;
+    const matchesCategory = categoryMatches(exercise.category, selectedCategory);
     const matchesEquipment = selectedEquipment === 'all' || exercise.equipment === selectedEquipment;
     return matchesSearch && matchesSource && matchesCategory && matchesEquipment;
   }), [allExercises, searchQuery, selectedSource, selectedCategory, selectedEquipment]);
@@ -214,7 +215,7 @@ export function CoachLibrary() {
                     </div>
                     <p className="text-sm text-gray-600">{exercise.description}</p>
                     <div className="flex gap-2 mt-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{exercise.category}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{formatCategory(exercise.category)}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{exercise.equipment}</span>
                     </div>
                   </div>

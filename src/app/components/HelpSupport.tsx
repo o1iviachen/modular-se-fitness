@@ -28,7 +28,7 @@ export function HelpSupport({ role }: { role: 'athlete' | 'coach' }) {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
-        <h1 className="text-xl font-semibold">Help & Support</h1>
+        <h1 className="text-xl font-semibold">Help and Support</h1>
       </div>
 
       <div className="px-6 py-6">

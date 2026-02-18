@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -9,24 +9,27 @@ import { db } from '../../lib/firebase';
 export function CoachEditProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
   });
   const [loaded, setLoaded] = useState(false);
+  const loadedDataRef = useRef({ firstName: '', lastName: '', email: '' });
 
   useEffect(() => {
     if (!user?.id) return;
     getDoc(doc(db, 'users', user.id)).then((snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        setFormData({
+        const initial = {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
-        });
+        };
+        setFormData(initial);
+        loadedDataRef.current = initial;
       }
       setLoaded(true);
     });
@@ -34,6 +37,18 @@ export function CoachEditProfile() {
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const hasChanges = () => {
+    const loaded = loadedDataRef.current;
+    return formData.firstName !== loaded.firstName || formData.lastName !== loaded.lastName;
+  };
+
+  const handleBack = () => {
+    if (hasChanges()) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to go back?')) return;
+    }
+    navigate(-1);
   };
 
   const handleSave = async () => {
@@ -50,7 +65,7 @@ export function CoachEditProfile() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
-        <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
+        <button onClick={handleBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />

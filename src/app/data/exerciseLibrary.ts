@@ -2,7 +2,7 @@ export interface LibraryExercise {
   id: number;
   name: string;
   source: string;
-  category: string;
+  category: string | string[];
   equipment: string;
   description: string;
   videoUrl?: string;

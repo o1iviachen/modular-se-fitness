@@ -13,7 +13,7 @@ export function CreateExercise() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    category: [] as string[],
     equipment: '',
     description: '',
     videoUrl: ''
@@ -29,7 +29,7 @@ export function CreateExercise() {
         const data = snap.data();
         setFormData({
           name: data.name || '',
-          category: data.category || '',
+          category: Array.isArray(data.category) ? data.category : data.category ? [data.category] : [],
           equipment: data.equipment || '',
           description: data.description || '',
           videoUrl: data.videoUrl || '',
@@ -44,7 +44,7 @@ export function CreateExercise() {
     'Mobility',
     'Flexibility',
     'Olympic Lifting',
-    'Gymnastics',
+    'Isometrics',
     'Cardio',
     'Core',
     'Other'
@@ -53,6 +53,7 @@ export function CreateExercise() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id || saving) return;
+    if (formData.category.length === 0) return;
     setSaving(true);
     try {
       if (isEditMode && exerciseId) {
@@ -86,6 +87,15 @@ export function CreateExercise() {
     setFormData({ ...formData, [field]: value });
   };
 
+  const hasUnsavedChanges = formData.name.trim() !== '' || formData.category.length > 0 || formData.description.trim() !== '' || formData.videoUrl.trim() !== '';
+
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) return;
+    }
+    navigate('/coach/library');
+  };
+
   if (loadingExercise) {
     return (
       <div className="min-h-full bg-gray-50 flex items-center justify-center">
@@ -99,7 +109,7 @@ export function CreateExercise() {
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
         <button
-          onClick={() => navigate('/coach/library')}
+          onClick={handleBack}
           className="text-white mb-4 hover:text-[#FFD000] transition-colors"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -130,19 +140,29 @@ export function CreateExercise() {
         <div className="mb-6">
           <div className="bg-white rounded-xl p-5 shadow-sm">
             <label className="block text-sm font-medium mb-2">Category *</label>
-            <select
-              value={formData.category}
-              onChange={(e) => handleChange('category', e.target.value)}
-              className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-              required
-            >
-              <option value="">Select a category</option>
+            <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
-                <option key={cat} value={cat}>
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      category: prev.category.includes(cat)
+                        ? prev.category.filter((c) => c !== cat)
+                        : [...prev.category, cat],
+                    }));
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                    formData.category.includes(cat)
+                      ? 'bg-[#FFD000] text-black font-medium'
+                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
                   {cat}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 
@@ -163,13 +183,12 @@ export function CreateExercise() {
         {/* Description */}
         <div className="mb-6">
           <div className="bg-white rounded-xl p-5 shadow-sm">
-            <label className="block text-sm font-medium mb-2">Description *</label>
+            <label className="block text-sm font-medium mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               className="w-full bg-gray-50 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-[#FFD000] resize-none"
               placeholder="Describe the exercise, its benefits, and proper form..."
-              required
             />
           </div>
         </div>
@@ -177,7 +196,7 @@ export function CreateExercise() {
         {/* Video URL */}
         <div className="mb-6">
           <div className="bg-white rounded-xl p-5 shadow-sm">
-            <label className="block text-sm font-medium mb-2">Video URL (Optional)</label>
+            <label className="block text-sm font-medium mb-2">Video URL</label>
             <input
               type="url"
               value={formData.videoUrl}
