@@ -55,7 +55,6 @@ export function WorkoutDetail() {
           name: data.name,
           source: 'custom',
           category: data.category,
-          equipment: data.equipment || 'Bodyweight',
           description: data.description,
           videoUrl: data.videoUrl || undefined,
         };

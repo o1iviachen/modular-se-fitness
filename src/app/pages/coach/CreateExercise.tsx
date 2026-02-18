@@ -14,7 +14,6 @@ export function CreateExercise() {
   const [formData, setFormData] = useState({
     name: '',
     category: [] as string[],
-    equipment: '',
     description: '',
     videoUrl: ''
   });
@@ -30,7 +29,6 @@ export function CreateExercise() {
         setFormData({
           name: data.name || '',
           category: Array.isArray(data.category) ? data.category : data.category ? [data.category] : [],
-          equipment: data.equipment || '',
           description: data.description || '',
           videoUrl: data.videoUrl || '',
         });
@@ -60,7 +58,6 @@ export function CreateExercise() {
         await updateDoc(doc(db, 'users', user.id, 'customExercises', exerciseId), {
           name: formData.name,
           category: formData.category,
-          equipment: formData.equipment || 'Bodyweight',
           description: formData.description,
           videoUrl: formData.videoUrl || null,
           updatedAt: serverTimestamp(),
@@ -69,7 +66,6 @@ export function CreateExercise() {
         await addDoc(collection(db, 'users', user.id, 'customExercises'), {
           name: formData.name,
           category: formData.category,
-          equipment: formData.equipment || 'Bodyweight',
           description: formData.description,
           videoUrl: formData.videoUrl || null,
           source: 'custom',
@@ -163,20 +159,6 @@ export function CreateExercise() {
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Equipment */}
-        <div className="mb-6">
-          <div className="bg-white rounded-xl p-5 shadow-sm">
-            <label className="block text-sm font-medium mb-2">Equipment</label>
-            <input
-              type="text"
-              value={formData.equipment}
-              onChange={(e) => handleChange('equipment', e.target.value)}
-              className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-              placeholder="e.g., Dumbbells"
-            />
           </div>
         </div>
 

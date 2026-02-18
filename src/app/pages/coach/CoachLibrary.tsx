@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { usePageState } from '../../hooks/usePageState';
@@ -9,7 +9,6 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { AssignExerciseModal } from '../../components/AssignExerciseModal';
-import { EquipmentFilterModal } from '../../components/EquipmentFilterModal';
 import { getSourceBadgeColor, getSourceName } from '../../utils/exerciseHelpers';
 import { formatCategory, categoryMatches } from '../../utils/helpers';
 
@@ -31,23 +30,10 @@ const exerciseCategories = [
   { id: 'Recovery', name: 'Recovery' },
 ];
 
-// Derive unique equipment list from data, with Bodyweight first
-const equipmentList = (() => {
-  const all = [...new Set(exerciseLibrary.map(e => e.equipment))].sort();
-  const bwIndex = all.indexOf('Bodyweight');
-  if (bwIndex > 0) {
-    all.splice(bwIndex, 1);
-    all.unshift('Bodyweight');
-  }
-  return all;
-})();
-
 export function CoachLibrary() {
   const [searchQuery, setSearchQuery] = usePageState('library-search', '');
   const [selectedSource, setSelectedSource] = usePageState('library-source', 'all');
   const [selectedCategory, setSelectedCategory] = usePageState('library-category', 'all');
-  const [selectedEquipment, setSelectedEquipment] = usePageState('library-equipment', 'all');
-  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
@@ -70,7 +56,6 @@ export function CoachLibrary() {
           name: data.name,
           source: 'custom',
           category: data.category,
-          equipment: data.equipment || 'Bodyweight',
           description: data.description,
           videoUrl: data.videoUrl || undefined,
         };
@@ -91,9 +76,8 @@ export function CoachLibrary() {
                          exercise.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSource = selectedSource === 'all' || exercise.source === selectedSource;
     const matchesCategory = categoryMatches(exercise.category, selectedCategory);
-    const matchesEquipment = selectedEquipment === 'all' || exercise.equipment === selectedEquipment;
-    return matchesSearch && matchesSource && matchesCategory && matchesEquipment;
-  }), [allExercises, searchQuery, selectedSource, selectedCategory, selectedEquipment]);
+    return matchesSearch && matchesSource && matchesCategory;
+  }), [allExercises, searchQuery, selectedSource, selectedCategory]);
 
   const openModal = (exercise) => {
     setSelectedExercise(exercise);
@@ -172,21 +156,6 @@ export function CoachLibrary() {
         </div>
       </div>
 
-      {/* Equipment Filter */}
-      <div className="px-6 mb-6">
-        <button
-          onClick={() => setIsEquipmentModalOpen(true)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors text-sm ${
-            selectedEquipment !== 'all'
-              ? 'bg-[#FFD000] text-black'
-              : 'bg-white text-gray-600 border border-gray-200'
-          }`}
-        >
-          <span>{selectedEquipment === 'all' ? 'All Equipment' : selectedEquipment}</span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
-
       {/* Results Count */}
       <div className="px-6 mb-3">
         <p className="text-sm text-gray-500">{filteredExercises.length} exercises</p>
@@ -216,7 +185,6 @@ export function CoachLibrary() {
                     <p className="text-sm text-gray-600">{exercise.description}</p>
                     <div className="flex gap-2 mt-2">
                       <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{formatCategory(exercise.category)}</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{exercise.equipment}</span>
                     </div>
                   </div>
                 </div>
@@ -265,15 +233,6 @@ export function CoachLibrary() {
           <span>Create Custom Exercise</span>
         </button>
       </div>
-
-      {/* Equipment Filter Modal */}
-      <EquipmentFilterModal
-        isOpen={isEquipmentModalOpen}
-        onClose={() => setIsEquipmentModalOpen(false)}
-        selectedEquipment={selectedEquipment}
-        onSelect={setSelectedEquipment}
-        equipmentList={equipmentList}
-      />
 
       {/* Assign Exercise Modal */}
       {isModalOpen && selectedExercise && (

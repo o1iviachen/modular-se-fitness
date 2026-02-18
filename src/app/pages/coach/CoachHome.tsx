@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { Search, UserPlus } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AthleteCard } from '../../components/ui/athlete-card';
@@ -208,18 +208,6 @@ export function CoachHome() {
           </div>
         )}
       </div>
-
-      {activeTab === 'active' && (
-        <div className="px-6 mt-6">
-          <button
-            onClick={() => navigate('/coach/profile?highlight=code')}
-            className="w-full bg-[#FFD000] text-black rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-[#FFD000]/90 transition-colors shadow-sm"
-          >
-            <UserPlus className="w-5 h-5" />
-            <span>Invite New Athlete</span>
-          </button>
-        </div>
-      )}
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

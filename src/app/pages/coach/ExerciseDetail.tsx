@@ -33,7 +33,6 @@ export function ExerciseDetail() {
           name: data.name,
           source: 'custom',
           category: data.category,
-          equipment: data.equipment || 'Bodyweight',
           description: data.description,
           videoUrl: data.videoUrl || undefined,
         });
@@ -77,7 +76,7 @@ export function ExerciseDetail() {
             {getSourceName(exercise.source)}
           </span>
         </div>
-        <p className="text-gray-400 text-sm">{formatCategory(exercise.category)} • {exercise.equipment}</p>
+        <p className="text-gray-400 text-sm">{formatCategory(exercise.category)}</p>
       </div>
 
       {/* Video Section */}
@@ -114,10 +113,6 @@ export function ExerciseDetail() {
             <div className="flex justify-between">
               <span className="text-gray-600">Category</span>
               <span className="font-medium">{formatCategory(exercise.category)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Equipment</span>
-              <span className="font-medium">{exercise.equipment}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Source</span>

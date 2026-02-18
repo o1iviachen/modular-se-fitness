@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Mail, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Mail, ChevronRight, ExternalLink, ShieldCheck } from 'lucide-react';
 
 
 const athleteFaq = [
@@ -68,11 +68,21 @@ export function HelpSupport({ role }: { role: 'athlete' | 'coach' }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="text-center">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 text-center border-b border-gray-100">
               <div className="text-sm text-gray-600 mb-1">App Version</div>
               <div className="font-medium">1.0.0</div>
             </div>
+            <a
+              href="https://o1iviachen.github.io/se-fitness-privacy/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+            >
+              <ShieldCheck className="w-5 h-5 text-gray-700" />
+              <span className="flex-1 font-medium">Privacy Policy</span>
+              <ExternalLink className="w-4 h-4 text-gray-400" />
+            </a>
           </div>
         </div>
       </div>

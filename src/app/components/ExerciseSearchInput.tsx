@@ -106,7 +106,7 @@ export function ExerciseSearchInput({ value, onChange, onSelectExercise, onBlur,
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatCategory(exercise.category)} • {exercise.equipment}
+                    {formatCategory(exercise.category)}
                   </div>
                 </button>
               ))}

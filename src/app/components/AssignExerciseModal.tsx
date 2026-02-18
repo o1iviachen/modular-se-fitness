@@ -12,7 +12,6 @@ interface Exercise {
   name: string;
   source: string;
   category: string | string[];
-  equipment: string;
   videoUrl?: string;
 }
 
