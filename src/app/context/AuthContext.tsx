@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   deleteUser,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -41,7 +42,8 @@ interface AuthContextType {
   signup: (email: string, password: string, firstName: string, lastName: string, role: 'athlete' | 'coach') => Promise<void>;
   signupWithGoogle: (role: 'athlete' | 'coach', firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
+  isGoogleUser: boolean;
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
   updateUserPhoto: (photoUrl: string) => void;
@@ -248,15 +250,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('se_fitness_user');
   };
 
-  const deleteAccount = async (password: string) => {
+  const isGoogleUser = !!auth.currentUser?.providerData.some(p => p.providerId === 'google.com');
+
+  const deleteAccount = async (password?: string) => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser || !user) throw new Error('Not authenticated');
     const uid = firebaseUser.uid;
 
     // Reauthenticate first
-    if (firebaseUser.email) {
+    const isGoogle = firebaseUser.providerData.some(p => p.providerId === 'google.com');
+    if (isGoogle) {
+      await reauthenticateWithPopup(firebaseUser, googleProvider);
+    } else if (password && firebaseUser.email) {
       const credential = EmailAuthProvider.credential(firebaseUser.email, password);
       await reauthenticateWithCredential(firebaseUser, credential);
+    } else {
+      throw new Error('Password required');
     }
 
     // Clean up Firestore data FIRST (while auth is still valid for rules)
@@ -297,7 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, isGoogleUser, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

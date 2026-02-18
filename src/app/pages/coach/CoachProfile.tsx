@@ -11,7 +11,7 @@ import { db, storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export function CoachProfile() {
-  const { user, logout, deleteAccount, updateUserPhoto } = useAuth();
+  const { user, logout, deleteAccount, isGoogleUser, updateUserPhoto } = useAuth();
   const [codeCopied, setCodeCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
@@ -53,14 +53,14 @@ export function CoachProfile() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword) return;
+    if (!isGoogleUser && !deletePassword) return;
     setDeleting(true);
     setDeleteError('');
     try {
-      await deleteAccount(deletePassword);
+      await deleteAccount(isGoogleUser ? undefined : deletePassword);
       navigate('/login');
     } catch {
-      setDeleteError('Incorrect password or failed to delete account.');
+      setDeleteError(isGoogleUser ? 'Failed to delete account.' : 'Incorrect password or failed to delete account.');
       setDeleting(false);
     }
   };
@@ -281,15 +281,21 @@ export function CoachProfile() {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-4">This will permanently delete your account and all data. Enter your password to confirm.</p>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
-                onKeyDown={(e) => e.key === 'Enter' && handleDeleteAccount()}
-              />
+              <p className="text-gray-600 mb-4">
+                {isGoogleUser
+                  ? 'This will permanently delete your account and all data. You will be asked to sign in with Google to confirm.'
+                  : 'This will permanently delete your account and all data. Enter your password to confirm.'}
+              </p>
+              {!isGoogleUser && (
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  onKeyDown={(e) => e.key === 'Enter' && handleDeleteAccount()}
+                />
+              )}
               {deleteError && <p className="text-red-500 text-sm mb-4">{deleteError}</p>}
               <div className="flex gap-3">
                 <button
@@ -300,7 +306,7 @@ export function CoachProfile() {
                 </button>
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={deleting || !deletePassword}
+                  disabled={deleting || (!isGoogleUser && !deletePassword)}
                   className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
                   {deleting ? 'Deleting...' : 'Delete'}
