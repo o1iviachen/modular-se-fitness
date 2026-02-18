@@ -5,7 +5,7 @@ import { WorkoutComments } from '../../components/WorkoutComments';
 import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
-import { saveWorkout, getWorkout, copyWorkout, deleteWorkout, WorkoutExercise } from '../../lib/workoutService';
+import { saveWorkout, getWorkout, copyWorkout, deleteWorkout, WorkoutExercise, type ResultMedia } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +23,7 @@ interface Exercise {
   videoUrl?: string;
   supersetWithPrev: boolean;
   result?: string;
+  resultMedia?: ResultMedia[];
 }
 
 export function WorkoutDetail() {
@@ -52,6 +53,8 @@ export function WorkoutDetail() {
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropPosition, setDropPosition] = useState<number | null>(null);
+  const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
+  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string } | null>(null);
 
   // Load custom exercises from Firestore
   useEffect(() => {
@@ -94,6 +97,7 @@ export function WorkoutDetail() {
           videoUrl: ex.videoUrl || exerciseLibrary.find(lib => lib.name === ex.name)?.videoUrl,
           supersetWithPrev: ex.supersetWithPrev || false,
           result: ex.result || '',
+          resultMedia: ex.resultMedia || [],
         }));
         // If exerciseToAdd, append it
         if (exerciseToAdd && !loadedExercises.some(e => e.name === exerciseToAdd.name)) {
@@ -380,10 +384,52 @@ export function WorkoutDetail() {
                         Watch Video
                       </button>
                     )}
-                    {exercise.result && (
-                      <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                        <div className="text-xs font-medium text-green-700 mb-1">Athlete's Result</div>
-                        <p className="text-sm text-green-900 whitespace-pre-wrap">{exercise.result}</p>
+                    {(exercise.result || (exercise.resultMedia && exercise.resultMedia.length > 0)) && (
+                      <div className="mt-3 bg-green-50 border border-green-200 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setExpandedResults(prev => {
+                            const next = new Set(prev);
+                            if (next.has(exercise.id)) next.delete(exercise.id);
+                            else next.add(exercise.id);
+                            return next;
+                          })}
+                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-green-100 transition-colors"
+                        >
+                          <span className="text-xs font-medium text-green-700">Athlete's Result</span>
+                          <svg className={`w-4 h-4 text-green-600 transition-transform ${expandedResults.has(exercise.id) ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {expandedResults.has(exercise.id) && (
+                          <div className="px-3 pb-3">
+                            {exercise.result && (
+                              <p className="text-sm text-green-900 whitespace-pre-wrap mb-2">{exercise.result}</p>
+                            )}
+                            {exercise.resultMedia && exercise.resultMedia.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {exercise.resultMedia.map((media, mediaIdx) => (
+                                  <button
+                                    key={mediaIdx}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLightboxMedia({ url: media.url, type: media.type });
+                                    }}
+                                    className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-200 hover:opacity-80 transition-opacity"
+                                  >
+                                    {media.type === 'video' ? (
+                                      <>
+                                        <video src={media.url} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <img src={media.url} alt={`Result ${mediaIdx + 1}`} className="w-full h-full object-cover" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -457,6 +503,37 @@ export function WorkoutDetail() {
         onConfirm={handleDeleteWorkout}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {/* Media Lightbox */}
+      {lightboxMedia && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightboxMedia(null)}
+        >
+          <button
+            onClick={() => setLightboxMedia(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          {lightboxMedia.type === 'video' ? (
+            <video
+              src={lightboxMedia.url}
+              controls
+              autoPlay
+              className="max-w-full max-h-[85vh] rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={lightboxMedia.url}
+              alt="Result media"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
