@@ -8,7 +8,7 @@ import { db } from '../../lib/firebase';
 
 export function CoachEditProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -57,6 +57,7 @@ export function CoachEditProfile() {
       firstName: formData.firstName,
       lastName: formData.lastName,
     });
+    updateUserProfile({ firstName: formData.firstName, lastName: formData.lastName });
     navigate(-1);
   };
 

@@ -47,6 +47,7 @@ interface AuthContextType {
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
   updateUserPhoto: (photoUrl: string) => void;
+  updateUserProfile: (data: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -291,6 +292,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => prev ? { ...prev, photoUrl } : null);
   };
 
+  const updateUserProfile = (data: Partial<User>) => {
+    setUser((prev) => prev ? { ...prev, ...data } : null);
+  };
+
   const connectCoach = async (coachCode: string) => {
     const codeSnap = await getDoc(doc(db, 'coachCodes', coachCode));
     if (!codeSnap.exists()) throw new Error('Invalid coach code');
@@ -306,7 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, isGoogleUser, connectCoach, completeAthleteSignup, updateUserPhoto, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, isGoogleUser, connectCoach, completeAthleteSignup, updateUserPhoto, updateUserProfile, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

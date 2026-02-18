@@ -27,7 +27,7 @@ function calculateAge(year: number, month: number, day: number): number | null {
 
 export function AthleteEditProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -120,6 +120,7 @@ export function AthleteEditProfile() {
       height: formData.height || null,
       weight: formData.weight || null,
     });
+    updateUserProfile({ firstName: formData.firstName, lastName: formData.lastName });
     navigate(-1);
   };
 
