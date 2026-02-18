@@ -1,10 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 100 }, (_, i) => currentYear - i);
+
+function calculateAge(year: number, month: number, day: number): number | null {
+  if (!year || !month || !day) return null;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const monthDiff = today.getMonth() + 1 - month;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < day)) {
+    age--;
+  }
+  return age;
+}
 
 export function AthleteEditProfile() {
   const navigate = useNavigate();
@@ -14,13 +33,24 @@ export function AthleteEditProfile() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    age: '',
     gender: '',
     height: '',
     weight: ''
   });
+  const [dobMonth, setDobMonth] = useState<number>(0);
+  const [dobDay, setDobDay] = useState<number>(0);
+  const [dobYear, setDobYear] = useState<number>(0);
   const [loaded, setLoaded] = useState(false);
-  const loadedDataRef = useRef({ firstName: '', lastName: '', age: '', gender: '', height: '', weight: '' });
+  const loadedDataRef = useRef({ firstName: '', lastName: '', gender: '', height: '', weight: '', dobMonth: 0, dobDay: 0, dobYear: 0 });
+
+  const age = useMemo(() => calculateAge(dobYear, dobMonth, dobDay), [dobYear, dobMonth, dobDay]);
+
+  const dayOptions = useMemo(() => {
+    const daysInMonth = dobMonth && dobYear
+      ? new Date(dobYear, dobMonth, 0).getDate()
+      : 31;
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  }, [dobMonth, dobYear]);
 
   // Load existing profile data from Firestore
   useEffect(() => {
@@ -32,13 +62,27 @@ export function AthleteEditProfile() {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
-          age: data.age != null ? String(data.age) : '',
           gender: data.gender || '',
           height: data.height != null ? String(data.height) : '',
           weight: data.weight != null ? String(data.weight) : '',
         };
         setFormData(initial);
-        loadedDataRef.current = { firstName: initial.firstName, lastName: initial.lastName, age: initial.age, gender: initial.gender, height: initial.height, weight: initial.weight };
+
+        // Parse dateOfBirth
+        let initMonth = 0, initDay = 0, initYear = 0;
+        if (data.dateOfBirth) {
+          const parts = data.dateOfBirth.split('-');
+          if (parts.length === 3) {
+            initYear = parseInt(parts[0]);
+            initMonth = parseInt(parts[1]);
+            initDay = parseInt(parts[2]);
+          }
+        }
+        setDobYear(initYear);
+        setDobMonth(initMonth);
+        setDobDay(initDay);
+
+        loadedDataRef.current = { firstName: initial.firstName, lastName: initial.lastName, gender: initial.gender, height: initial.height, weight: initial.weight, dobMonth: initMonth, dobDay: initDay, dobYear: initYear };
       }
       setLoaded(true);
     });
@@ -51,8 +95,8 @@ export function AthleteEditProfile() {
   const hasChanges = () => {
     const l = loadedDataRef.current;
     return formData.firstName !== l.firstName || formData.lastName !== l.lastName ||
-      formData.age !== l.age || formData.gender !== l.gender ||
-      formData.height !== l.height || formData.weight !== l.weight;
+      formData.gender !== l.gender || formData.height !== l.height || formData.weight !== l.weight ||
+      dobMonth !== l.dobMonth || dobDay !== l.dobDay || dobYear !== l.dobYear;
   };
 
   const handleBack = () => {
@@ -64,10 +108,14 @@ export function AthleteEditProfile() {
 
   const handleSave = async () => {
     if (!user?.id) return;
+    const dateOfBirth = dobYear && dobMonth && dobDay
+      ? `${dobYear}-${String(dobMonth).padStart(2, '0')}-${String(dobDay).padStart(2, '0')}`
+      : null;
     await updateDoc(doc(db, 'users', user.id), {
       firstName: formData.firstName,
       lastName: formData.lastName,
-      age: formData.age ? Number(formData.age) : null,
+      age: age ?? null,
+      dateOfBirth,
       gender: formData.gender || null,
       height: formData.height || null,
       weight: formData.weight || null,
@@ -125,15 +173,56 @@ export function AthleteEditProfile() {
           <div className="bg-white rounded-xl p-5 shadow-sm">
             <h3 className="font-semibold mb-4">Physical Information</h3>
             <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600 block mb-2">Date of Birth</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="relative">
+                    <select
+                      value={dobMonth}
+                      onChange={(e) => setDobMonth(Number(e.target.value))}
+                      className="w-full bg-gray-50 rounded-lg px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[#FFD000] appearance-none"
+                    >
+                      <option value={0}>Month</option>
+                      {MONTHS.map((m, i) => (
+                        <option key={m} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                  <div className="relative">
+                    <select
+                      value={dobDay}
+                      onChange={(e) => setDobDay(Number(e.target.value))}
+                      className="w-full bg-gray-50 rounded-lg px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[#FFD000] appearance-none"
+                    >
+                      <option value={0}>Day</option>
+                      {dayOptions.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                  <div className="relative">
+                    <select
+                      value={dobYear}
+                      onChange={(e) => setDobYear(Number(e.target.value))}
+                      className="w-full bg-gray-50 rounded-lg px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[#FFD000] appearance-none"
+                    >
+                      <option value={0}>Year</option>
+                      {YEARS.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 block mb-2">Age</label>
-                  <input
-                    type="number"
-                    value={formData.age}
-                    onChange={(e) => handleChange('age', e.target.value)}
-                    className="w-full bg-gray-50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
-                  />
+                  <div className="w-full bg-gray-100 rounded-lg px-4 py-3 text-gray-500">
+                    {age != null ? age : 'Auto-calculated'}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 block mb-2">Gender</label>
