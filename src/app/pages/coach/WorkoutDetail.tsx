@@ -5,10 +5,11 @@ import { WorkoutComments } from '../../components/WorkoutComments';
 import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
-import { saveWorkout, getWorkout, copyWorkout, WorkoutExercise } from '../../lib/workoutService';
+import { saveWorkout, getWorkout, copyWorkout, deleteWorkout, WorkoutExercise } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -29,6 +30,15 @@ export function WorkoutDetail() {
   const location = useLocation();
   const { workoutId } = useParams();
   const { workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null } = location.state || {};
+  const cameFromCreateExercise = !!exerciseToAdd;
+
+  const goBack = () => {
+    if (cameFromCreateExercise && athleteId) {
+      navigate(`/coach/athlete/${athleteId}/workouts`);
+    } else {
+      navigate(-1);
+    }
+  };
 
   const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -38,6 +48,7 @@ export function WorkoutDetail() {
   const [showComments, setShowComments] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
 
   // Load custom exercises from Firestore
@@ -103,7 +114,7 @@ export function WorkoutDetail() {
 
   // If no workout date provided, redirect back
   if (!workoutDate) {
-    navigate(-1);
+    goBack();
     return null;
   }
 
@@ -148,7 +159,7 @@ export function WorkoutDetail() {
         supersetWithPrev: ex.supersetWithPrev || false,
       }));
       await saveWorkout(athleteId, workoutDate, firestoreExercises, workoutNotes);
-      navigate(-1);
+      goBack();
     } catch (err) {
       console.error('Failed to save workout:', err);
     } finally {
@@ -168,11 +179,17 @@ export function WorkoutDetail() {
     }
   };
 
+  const handleDeleteWorkout = async () => {
+    if (!athleteId || !workoutDate) return;
+    await deleteWorkout(athleteId, workoutDate);
+    goBack();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-black text-white px-6 py-8">
-          <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
+          <button onClick={goBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
@@ -188,12 +205,15 @@ export function WorkoutDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate(-1)} className="text-white hover:text-[#FFD000] transition-colors">
+          <button onClick={goBack} className="text-white hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-3">
             <button onClick={() => setShowCopyModal(true)} className="text-white hover:text-[#FFD000] transition-colors" title="Copy workout to other dates">
               <Copy className="w-5 h-5" />
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="text-white hover:text-red-500 transition-colors" title="Delete workout">
+              <Trash2 className="w-5 h-5" />
             </button>
             <button onClick={() => setShowComments(true)} className="text-white hover:text-[#FFD000] transition-colors">
               <MessageSquare className="w-6 h-6" />
@@ -345,7 +365,7 @@ export function WorkoutDetail() {
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
           >
             Cancel
@@ -370,6 +390,15 @@ export function WorkoutDetail() {
         onCopy={handleCopy}
         onClose={() => setShowCopyModal(false)}
         copying={copying}
+      />
+
+      {/* Delete Workout Confirm Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Workout"
+        message={`Are you sure you want to delete this workout for ${workoutDay} (${isoToDisplayDate(workoutDate)})? This cannot be undone.`}
+        onConfirm={handleDeleteWorkout}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>
   );

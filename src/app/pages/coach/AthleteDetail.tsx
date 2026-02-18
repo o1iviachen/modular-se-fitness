@@ -12,6 +12,7 @@ interface AthleteProfile {
   id: string;
   name: string;
   email: string;
+  photoUrl?: string;
   age: number | null;
   gender: string | null;
   weight: string | null;
@@ -120,6 +121,7 @@ export function AthleteDetail() {
           id: snap.id,
           name: `${data.firstName} ${data.lastName}`,
           email: data.email,
+          photoUrl: data.photoUrl || undefined,
           age: data.age ?? null,
           gender: data.gender ?? null,
           weight: data.weight ?? null,
@@ -218,8 +220,19 @@ export function AthleteDetail() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
-        <h1 className="text-xl mb-1 font-semibold">{athlete.name}</h1>
-        <p className="text-gray-400 text-sm">{athlete.email}</p>
+        <div className="flex items-center gap-4">
+          {athlete.photoUrl ? (
+            <img src={athlete.photoUrl} alt={athlete.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-14 h-14 bg-[#FFD000] rounded-full flex items-center justify-center text-black text-lg font-semibold flex-shrink-0">
+              {athlete.name.split(' ').map(n => n[0]).join('')}
+            </div>
+          )}
+          <div>
+            <h1 className="text-xl mb-1 font-semibold">{athlete.name}</h1>
+            <p className="text-gray-400 text-sm">{athlete.email}</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}

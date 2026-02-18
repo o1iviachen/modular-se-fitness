@@ -13,6 +13,7 @@ interface Conversation {
   lastMessage: string;
   lastMessageAt: any;
   avatar: string;
+  photoUrl?: string;
   hasUnread: boolean;
 }
 
@@ -43,16 +44,23 @@ export function AthleteMessages() {
         };
       });
 
-      // Filter out deleted users
+      // Filter out deleted users and fetch photoUrls
       const uniqueIds = [...new Set(convos.map(c => c.coachId).filter(Boolean))];
       const existingUserIds = new Set<string>();
+      const photoUrls = new Map<string, string>();
       await Promise.all(uniqueIds.map(async (id) => {
         try {
           const userSnap = await getDoc(doc(db, 'users', id));
-          if (userSnap.exists()) existingUserIds.add(id);
+          if (userSnap.exists()) {
+            existingUserIds.add(id);
+            const photoUrl = userSnap.data().photoUrl;
+            if (photoUrl) photoUrls.set(id, photoUrl);
+          }
         } catch {}
       }));
-      const activeConvos = convos.filter(c => existingUserIds.has(c.coachId));
+      const activeConvos = convos
+        .filter(c => existingUserIds.has(c.coachId))
+        .map(c => ({ ...c, photoUrl: photoUrls.get(c.coachId) }));
 
       setConversations(activeConvos);
     });
@@ -87,8 +95,14 @@ export function AthleteMessages() {
                 onClick={() => navigate(`/athlete/messages/${convo.id}`)}
                 className="w-full px-5 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="relative w-12 h-12 bg-[#FFD000] rounded-full flex items-center justify-center text-black flex-shrink-0">
-                  {convo.avatar}
+                <div className="relative flex-shrink-0">
+                  {convo.photoUrl ? (
+                    <img src={convo.photoUrl} alt={convo.coachName} className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 bg-[#FFD000] rounded-full flex items-center justify-center text-black">
+                      {convo.avatar}
+                    </div>
+                  )}
                   {convo.hasUnread && (
                     <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />
                   )}

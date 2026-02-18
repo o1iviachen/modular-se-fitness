@@ -1,5 +1,5 @@
 import {
-  doc, setDoc, getDoc, updateDoc,
+  doc, setDoc, getDoc, updateDoc, deleteDoc,
   collection, query, where, orderBy, onSnapshot,
   serverTimestamp, Timestamp
 } from 'firebase/firestore';
@@ -75,6 +75,14 @@ export async function saveWorkout(
       updatedAt: serverTimestamp(),
     });
   }
+}
+
+/** Delete a workout */
+export async function deleteWorkout(
+  athleteId: string,
+  dateString: string
+): Promise<void> {
+  await deleteDoc(workoutDocRef(athleteId, dateString));
 }
 
 /** Set or unset a rest day */

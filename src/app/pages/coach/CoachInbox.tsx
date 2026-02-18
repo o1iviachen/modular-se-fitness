@@ -13,6 +13,7 @@ interface Conversation {
   lastMessage: string;
   lastMessageAt: any;
   avatar: string;
+  photoUrl?: string;
   hasUnread: boolean;
 }
 
@@ -44,16 +45,23 @@ export function CoachInbox() {
         };
       });
 
-      // Filter out deleted users
+      // Filter out deleted users and fetch photoUrls
       const uniqueIds = [...new Set(convos.map(c => c.athleteId).filter(Boolean))];
       const existingUserIds = new Set<string>();
+      const photoUrls = new Map<string, string>();
       await Promise.all(uniqueIds.map(async (id) => {
         try {
           const userSnap = await getDoc(doc(db, 'users', id));
-          if (userSnap.exists()) existingUserIds.add(id);
+          if (userSnap.exists()) {
+            existingUserIds.add(id);
+            const photoUrl = userSnap.data().photoUrl;
+            if (photoUrl) photoUrls.set(id, photoUrl);
+          }
         } catch {}
       }));
-      const activeConvos = convos.filter(c => existingUserIds.has(c.athleteId));
+      const activeConvos = convos
+        .filter(c => existingUserIds.has(c.athleteId))
+        .map(c => ({ ...c, photoUrl: photoUrls.get(c.athleteId) }));
 
       activeConvos.sort((a, b) => {
         const aTime = a.lastMessageAt?.toMillis?.() || 0;
@@ -115,8 +123,14 @@ export function CoachInbox() {
                   idx !== filteredConversations.length - 1 ? 'border-b border-gray-100' : ''
                 }`}
               >
-                <div className="relative w-12 h-12 rounded-full flex items-center justify-center text-black flex-shrink-0 bg-[#FFD000]">
-                  {conversation.avatar}
+                <div className="relative flex-shrink-0">
+                  {conversation.photoUrl ? (
+                    <img src={conversation.photoUrl} alt={conversation.athleteName} className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-black bg-[#FFD000]">
+                      {conversation.avatar}
+                    </div>
+                  )}
                   {conversation.hasUnread && (
                     <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />
                   )}

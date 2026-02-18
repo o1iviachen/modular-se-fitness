@@ -20,7 +20,7 @@ export function Messages() {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [convoData, setConvoData] = useState<{ name: string; avatar: string; role: string } | null>(null);
+  const [convoData, setConvoData] = useState<{ name: string; avatar: string; role: string; photoUrl?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -36,13 +36,25 @@ export function Messages() {
       const data = snap.data();
       const isCoach = user.role === 'coach';
       const name = isCoach ? data.athleteName : data.coachName;
+      const otherId = isCoach ? data.athleteId : data.coachId;
       const initials = name
         ? name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
         : '?';
+
+      // Fetch other person's photoUrl
+      let photoUrl: string | undefined;
+      if (otherId) {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', otherId));
+          if (userSnap.exists()) photoUrl = userSnap.data().photoUrl || undefined;
+        } catch {}
+      }
+
       setConvoData({
         name,
         avatar: initials,
         role: isCoach ? 'Athlete' : 'Coach',
+        photoUrl,
       });
       setLoading(false);
     };
@@ -135,9 +147,13 @@ export function Messages() {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="w-10 h-10 bg-[#FFD000] rounded-full flex items-center justify-center text-black flex-shrink-0">
-              {convoData.avatar}
-            </div>
+            {convoData.photoUrl ? (
+              <img src={convoData.photoUrl} alt={convoData.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 bg-[#FFD000] rounded-full flex items-center justify-center text-black flex-shrink-0">
+                {convoData.avatar}
+              </div>
+            )}
             <div>
               <h2 className="text-lg">{convoData.name}</h2>
               <p className="text-gray-400 text-sm">{convoData.role}</p>

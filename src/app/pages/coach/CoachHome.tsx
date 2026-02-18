@@ -13,6 +13,7 @@ interface FirestoreAthlete {
   id: string;
   name: string;
   email: string;
+  photoUrl?: string;
   age: number | null;
   gender: string | null;
   weight: string | null;
@@ -65,6 +66,7 @@ export function CoachHome() {
           id: d.id,
           name,
           email: data.email,
+          photoUrl: data.photoUrl || undefined,
           age: data.age ?? null,
           gender: data.gender ?? null,
           weight: data.weight ?? null,
@@ -194,6 +196,7 @@ export function CoachHome() {
               <AthleteCard
                 key={athlete.id}
                 name={athlete.name}
+                photoUrl={athlete.photoUrl}
                 lastWorkout={athlete.lastWorkout}
                 streak={athlete.streak}
                 isArchived={athlete.isArchived}
