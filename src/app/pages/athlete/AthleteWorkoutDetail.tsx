@@ -211,14 +211,16 @@ export function AthleteWorkoutDetail() {
 
             {/* Video Embed */}
             {exercise.videoUrl && (
-              <div className="relative mb-4 rounded-xl overflow-hidden">
-                <iframe
-                  src={toEmbedUrl(exercise.videoUrl!)}
-                  title={exercise.name}
-                  className="w-full h-48"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+              <div className="flex justify-center mb-4">
+                <div className="w-3/5 aspect-[9/16] max-h-[320px] rounded-xl overflow-hidden">
+                  <iframe
+                    src={toEmbedUrl(exercise.videoUrl!)}
+                    title={exercise.name}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
               </div>
             )}
 
