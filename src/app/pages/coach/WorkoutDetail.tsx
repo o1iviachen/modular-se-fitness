@@ -50,6 +50,8 @@ export function WorkoutDetail() {
   const [copying, setCopying] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropPosition, setDropPosition] = useState<number | null>(null);
 
   // Load custom exercises from Firestore
   useEffect(() => {
@@ -143,6 +145,24 @@ export function WorkoutDetail() {
 
   const handleUpdateExercise = (id: number, field: keyof Exercise, value: string) => {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, [field]: value } : ex));
+  };
+
+  const handleReorder = (fromIdx: number, toPosition: number) => {
+    if (toPosition === fromIdx || toPosition === fromIdx + 1) return;
+    const newExercises = [...exercises];
+    const [moved] = newExercises.splice(fromIdx, 1);
+    const targetIdx = toPosition > fromIdx ? toPosition - 1 : toPosition;
+    moved.supersetWithPrev = false;
+    newExercises.splice(targetIdx, 0, moved);
+    // If inserted into a superset chain (next exercise has supersetWithPrev: true), join it
+    if (targetIdx > 0 && targetIdx + 1 < newExercises.length && newExercises[targetIdx + 1].supersetWithPrev) {
+      newExercises[targetIdx] = { ...newExercises[targetIdx], supersetWithPrev: true };
+    }
+    // First exercise can never be supersetted
+    if (newExercises.length > 0) {
+      newExercises[0] = { ...newExercises[0], supersetWithPrev: false };
+    }
+    setExercises(newExercises);
   };
 
   const handleSave = async () => {
@@ -243,7 +263,28 @@ export function WorkoutDetail() {
             {(() => {
               const labels = getExerciseLabels(exercises);
               return exercises.map((exercise, idx) => (
-              <div key={exercise.id}>
+              <div
+                key={exercise.id}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const midY = rect.top + rect.height / 2;
+                  setDropPosition(e.clientY < midY ? idx : idx + 1);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIdx !== null && dropPosition !== null) {
+                    handleReorder(dragIdx, dropPosition);
+                  }
+                  setDragIdx(null);
+                  setDropPosition(null);
+                }}
+              >
+                {/* Drop indicator */}
+                {dropPosition === idx && dragIdx !== null && dragIdx !== idx && dragIdx !== idx - 1 && (
+                  <div className="h-1 bg-[#FFD000] rounded-full mb-2" />
+                )}
                 {/* Superset toggle between exercises */}
                 {idx > 0 && (
                   <button
@@ -261,13 +302,26 @@ export function WorkoutDetail() {
                     )}
                   </button>
                 )}
-                <div className={`bg-white rounded-xl p-4 shadow-sm ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''}`}>
+                <div className={`bg-white rounded-xl p-4 shadow-sm ${exercise.supersetWithPrev ? 'border-l-4 border-[#FFD000]' : ''} ${dragIdx === idx ? 'opacity-50' : ''} transition-opacity`}>
                 <div className="flex items-start gap-3 mb-3">
                   <div className="flex flex-col items-center gap-1 mt-2">
                     <div className="w-7 h-7 bg-gray-100 rounded flex items-center justify-center text-xs font-semibold text-gray-700">
                       {labels[idx]}
                     </div>
-                    <GripVertical className="w-4 h-4 text-gray-400" />
+                    <div
+                      draggable
+                      onDragStart={(e) => {
+                        setDragIdx(idx);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => {
+                        setDragIdx(null);
+                        setDropPosition(null);
+                      }}
+                      className="cursor-grab active:cursor-grabbing p-1 -m-1"
+                    >
+                      <GripVertical className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
                   <div className="flex-1">
                     <ExerciseSearchInput
@@ -344,6 +398,9 @@ export function WorkoutDetail() {
               </div>
               ));
             })()}
+            {dropPosition === exercises.length && dragIdx !== null && dragIdx !== exercises.length - 1 && (
+              <div className="h-1 bg-[#FFD000] rounded-full mt-2" />
+            )}
           </div>
 
           <button
