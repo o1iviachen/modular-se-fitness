@@ -75,7 +75,6 @@ export function AthleteWorkoutDetail() {
   const handleCompleteWorkout = async () => {
     if (!user?.id || !dateString) return;
     await firestoreCompleteWorkout(user.id, dateString);
-    setExercises(exercises.map(ex => ({ ...ex, completed: true })));
     setShowCompletion(true);
   };
 
