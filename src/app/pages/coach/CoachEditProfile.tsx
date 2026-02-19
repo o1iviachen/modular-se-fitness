@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -16,6 +17,7 @@ export function CoachEditProfile() {
     email: user?.email || '',
   });
   const [loaded, setLoaded] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const loadedDataRef = useRef({ firstName: '', lastName: '', email: '' });
 
   useEffect(() => {
@@ -46,7 +48,8 @@ export function CoachEditProfile() {
 
   const handleBack = () => {
     if (hasChanges()) {
-      if (!window.confirm('You have unsaved changes. Are you sure you want to go back?')) return;
+      setShowUnsavedModal(true);
+      return;
     }
     navigate(-1);
   };
@@ -115,7 +118,7 @@ export function CoachEditProfile() {
             onClick={handleSave}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
           >
-            Save Changes
+            Save
           </button>
           <button
             onClick={() => navigate(-1)}
@@ -125,6 +128,17 @@ export function CoachEditProfile() {
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={() => navigate(-1)}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

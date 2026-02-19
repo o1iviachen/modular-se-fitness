@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { ArrowLeft } from 'lucide-react';
 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -18,24 +19,42 @@ export function PersonalInfo() {
     weight: '',
   });
   const [loaded, setLoaded] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const loadedDataRef = useRef({ firstName: '', lastName: '', dateOfBirth: '', height: '', weight: '' });
 
   useEffect(() => {
     if (!user?.id) return;
     getDoc(doc(db, 'users', user.id)).then((snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        setInfo({
+        const initial = {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
           dateOfBirth: data.dateOfBirth || '',
           height: data.height != null ? String(data.height) : '',
           weight: data.weight != null ? String(data.weight) : '',
-        });
+        };
+        setInfo(initial);
+        loadedDataRef.current = { firstName: initial.firstName, lastName: initial.lastName, dateOfBirth: initial.dateOfBirth, height: initial.height, weight: initial.weight };
       }
       setLoaded(true);
     });
   }, [user?.id]);
+
+  const hasChanges = () => {
+    const l = loadedDataRef.current;
+    return info.firstName !== l.firstName || info.lastName !== l.lastName ||
+      info.dateOfBirth !== l.dateOfBirth || info.height !== l.height || info.weight !== l.weight;
+  };
+
+  const handleBack = () => {
+    if (hasChanges()) {
+      setShowUnsavedModal(true);
+      return;
+    }
+    navigate(-1);
+  };
 
   const handleSave = async () => {
     if (!user?.id) return;
@@ -56,7 +75,7 @@ export function PersonalInfo() {
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="text-white mb-4 hover:text-[#FFD000] transition-colors"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -136,10 +155,21 @@ export function PersonalInfo() {
             onClick={handleSave}
             className="w-full bg-[#FFD000] text-black py-4 rounded-xl hover:bg-[#FFD000]/90 transition-colors font-medium mt-6"
           >
-            Save Changes
+            Save
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={() => navigate(-1)}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

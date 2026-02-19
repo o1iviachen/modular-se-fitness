@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router';
 import { ArrowLeft, Plus, Trash2, GripVertical, Play, Link2, Unlink, MessageSquare, Copy, Check } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
@@ -34,7 +34,7 @@ export function WorkoutDetail() {
   const { workoutDate = '', workoutDay = '', athleteId = '', exerciseToAdd = null, cameFromLibrary = false } = location.state || {};
   const cameFromCreateExercise = !!exerciseToAdd;
 
-  const goBack = () => {
+  const doGoBack = () => {
     if (cameFromLibrary) {
       navigate('/coach/library');
     } else if (cameFromCreateExercise && athleteId) {
@@ -42,6 +42,19 @@ export function WorkoutDetail() {
     } else {
       navigate(-1);
     }
+  };
+
+  const getSnapshot = (exs: { name: string; sets?: string; reps?: string; weight?: string; notes?: string; videoUrl?: string; supersetWithPrev?: boolean }[], notes: string) =>
+    JSON.stringify(exs.map(e => ({ name: e.name, sets: e.sets, reps: e.reps, weight: e.weight, notes: e.notes, videoUrl: e.videoUrl, supersetWithPrev: e.supersetWithPrev }))) + '||' + notes;
+
+  const hasChanges = () => exercises.length > 0 && getSnapshot(exercises, workoutNotes) !== savedSnapshotRef.current;
+
+  const handleBack = () => {
+    if (hasChanges()) {
+      setShowUnsavedModal(true);
+      return;
+    }
+    doGoBack();
   };
 
   const { user } = useAuth();
@@ -58,6 +71,8 @@ export function WorkoutDetail() {
   const [dropPosition, setDropPosition] = useState<number | null>(null);
   const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string } | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const savedSnapshotRef = useRef('');
 
   // Load custom exercises from Firestore
   useEffect(() => {
@@ -103,12 +118,15 @@ export function WorkoutDetail() {
           result: ex.result || '',
           resultMedia: ex.resultMedia || [],
         }));
+        const loadedNotes = existing.workoutNotes || '';
+        // Set snapshot BEFORE adding exerciseToAdd so hasChanges() detects the new exercise
+        savedSnapshotRef.current = getSnapshot(loadedExercises, loadedNotes);
         // If exerciseToAdd, append it
         if (exerciseToAdd && !loadedExercises.some(e => e.name === exerciseToAdd.name)) {
           loadedExercises.push({ ...exerciseToAdd, id: Date.now(), supersetWithPrev: false });
         }
         setExercises(loadedExercises);
-        setWorkoutNotes(existing.workoutNotes || '');
+        setWorkoutNotes(loadedNotes);
       } else if (exerciseToAdd) {
         setExercises([{ ...exerciseToAdd, id: Date.now(), supersetWithPrev: false }]);
       }
@@ -124,7 +142,7 @@ export function WorkoutDetail() {
 
   // If no workout date provided, redirect back
   if (!workoutDate) {
-    goBack();
+    doGoBack();
     return null;
   }
 
@@ -148,7 +166,13 @@ export function WorkoutDetail() {
   };
 
   const handleDeleteExercise = (id: number) => {
-    setExercises(exercises.filter(ex => ex.id !== id));
+    const idx = exercises.findIndex(ex => ex.id === id);
+    const updated = exercises.filter(ex => ex.id !== id);
+    // The exercise that falls into the deleted slot loses its superset link
+    if (idx < updated.length) {
+      updated[idx] = { ...updated[idx], supersetWithPrev: false };
+    }
+    setExercises(updated);
   };
 
   const handleUpdateExercise = (id: number, field: keyof Exercise, value: string) => {
@@ -159,12 +183,16 @@ export function WorkoutDetail() {
     if (toPosition === fromIdx || toPosition === fromIdx + 1) return;
     const newExercises = [...exercises];
     const [moved] = newExercises.splice(fromIdx, 1);
+    // The exercise that fell into the removed slot loses its superset link
+    if (fromIdx < newExercises.length) {
+      newExercises[fromIdx] = { ...newExercises[fromIdx], supersetWithPrev: false };
+    }
     const targetIdx = toPosition > fromIdx ? toPosition - 1 : toPosition;
     moved.supersetWithPrev = false;
     newExercises.splice(targetIdx, 0, moved);
-    // If inserted into a superset chain (next exercise has supersetWithPrev: true), join it
-    if (targetIdx > 0 && targetIdx + 1 < newExercises.length && newExercises[targetIdx + 1].supersetWithPrev) {
-      newExercises[targetIdx] = { ...newExercises[targetIdx], supersetWithPrev: true };
+    // The exercise right after the inserted one loses its superset link
+    if (targetIdx + 1 < newExercises.length) {
+      newExercises[targetIdx + 1] = { ...newExercises[targetIdx + 1], supersetWithPrev: false };
     }
     // First exercise can never be supersetted
     if (newExercises.length > 0) {
@@ -187,7 +215,7 @@ export function WorkoutDetail() {
         supersetWithPrev: ex.supersetWithPrev || false,
       }));
       await saveWorkout(athleteId, workoutDate, firestoreExercises, workoutNotes);
-      goBack();
+      doGoBack();
     } catch (err) {
       console.error('Failed to save workout:', err);
     } finally {
@@ -198,7 +226,7 @@ export function WorkoutDetail() {
   const handleCopy = async (targetDates: string[]) => {
     setCopying(true);
     try {
-      await copyWorkout(athleteId, workoutDate, targetDates);
+      await copyWorkout(athleteId, targetDates, exercises, workoutNotes);
       setShowCopyModal(false);
     } catch (err) {
       console.error('Failed to copy workout:', err);
@@ -210,14 +238,14 @@ export function WorkoutDetail() {
   const handleDeleteWorkout = async () => {
     if (!athleteId || !workoutDate) return;
     await deleteWorkout(athleteId, workoutDate);
-    goBack();
+    doGoBack();
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-black text-white px-6 py-8">
-          <button onClick={goBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
+          <button onClick={doGoBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
@@ -233,7 +261,7 @@ export function WorkoutDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={goBack} className="text-white hover:text-[#FFD000] transition-colors">
+          <button onClick={handleBack} className="text-white hover:text-[#FFD000] transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-3">
@@ -250,7 +278,7 @@ export function WorkoutDetail() {
         </div>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
         <h1 className="text-xl font-semibold">Assign Workout</h1>
-        {workoutDay && workoutDate && <p className="text-gray-400 text-sm mt-1">{workoutDay} · {isoToDisplayDate(workoutDate)}</p>}
+        {workoutDay && workoutDate && <p className="text-gray-400 text-sm mt-1">{isoToDisplayDate(workoutDate)} · {workoutDay}</p>}
       </div>
 
       <div className="px-6 py-6">
@@ -475,10 +503,10 @@ export function WorkoutDetail() {
             disabled={saving}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
           <button
-            onClick={goBack}
+            onClick={handleBack}
             className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
           >
             Cancel
@@ -544,6 +572,17 @@ export function WorkoutDetail() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={doGoBack}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

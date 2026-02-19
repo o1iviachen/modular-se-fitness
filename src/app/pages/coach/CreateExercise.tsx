@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -21,6 +22,7 @@ export function CreateExercise() {
   });
   const [saving, setSaving] = useState(false);
   const [loadingExercise, setLoadingExercise] = useState(isEditMode);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
   // Load existing exercise data in edit mode
   useEffect(() => {
@@ -121,7 +123,8 @@ export function CreateExercise() {
 
   const handleBack = () => {
     if (hasUnsavedChanges) {
-      if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) return;
+      setShowUnsavedModal(true);
+      return;
     }
     goBack();
   };
@@ -233,7 +236,7 @@ export function CreateExercise() {
             disabled={saving}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium disabled:opacity-50"
           >
-            {saving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Exercise'}
+            {saving ? 'Saving...' : isEditMode ? 'Save' : 'Create Exercise'}
           </button>
           <button
             type="button"
@@ -244,6 +247,17 @@ export function CreateExercise() {
           </button>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={goBack}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

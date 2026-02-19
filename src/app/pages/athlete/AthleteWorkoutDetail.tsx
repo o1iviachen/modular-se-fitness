@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Check, MessageSquare, Camera, Video, X, Loader2 } from 'lucide-react';
 import { WorkoutComments } from '../../components/WorkoutComments';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { useAuth } from '../../context/AuthContext';
 import { getWorkout, toggleExerciseCompletion, completeWorkout as firestoreCompleteWorkout, saveExerciseResult, uploadResultMedia, deleteResultMedia, type ResultMedia } from '../../lib/workoutService';
 import { isoToDisplayDate, isoToDayName, getExerciseLabels, toEmbedUrl } from '../../utils/helpers';
@@ -211,8 +212,8 @@ export function AthleteWorkoutDetail() {
 
             {/* Video Embed */}
             {exercise.videoUrl && (
-              <div className="flex justify-center mb-4">
-                <div className="w-full aspect-video rounded-xl overflow-hidden">
+              <div className="mb-4">
+                <div className="w-3/4 max-w-sm mx-auto aspect-video rounded-xl overflow-hidden">
                   <iframe
                     src={toEmbedUrl(exercise.videoUrl!)}
                     title={exercise.name}
@@ -381,13 +382,15 @@ function ExerciseDetailView({
   const [saving, setSaving] = useState(false);
   const [media, setMedia] = useState<ResultMedia[]>(exercise.resultMedia || []);
   const [uploading, setUploading] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasUnsavedResults = results !== (exercise.result || '') || media.length !== (exercise.resultMedia?.length || 0);
 
   const handleBackWithCheck = () => {
     if (hasUnsavedResults) {
-      if (!window.confirm('You have unsaved results. Are you sure you want to leave?')) return;
+      setShowUnsavedModal(true);
+      return;
     }
     onBack();
   };
@@ -560,6 +563,17 @@ function ExerciseDetailView({
           {saving ? 'Saving...' : 'Save results'}
         </button>
       </div>
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved results. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={onBack}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

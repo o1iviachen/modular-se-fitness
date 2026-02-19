@@ -16,12 +16,12 @@ export interface ResultMedia {
 
 export interface WorkoutExercise {
   name: string;
-  sets: string;
-  reps: string;
-  weight: string;
-  notes: string;
+  sets?: string;
+  reps?: string;
+  weight?: string;
+  notes?: string;
   videoUrl?: string;
-  completed: boolean;
+  completed?: boolean;
   supersetWithPrev?: boolean;
   result?: string;
   resultMedia?: ResultMedia[];
@@ -172,17 +172,8 @@ export async function completeWorkout(
   dateString: string
 ): Promise<void> {
   const ref = workoutDocRef(athleteId, dateString);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-
-  const data = snap.data();
-  const exercises = data.exercises.map((ex: WorkoutExercise) => ({
-    ...ex,
-    completed: true,
-  }));
 
   await updateDoc(ref, {
-    exercises,
     completed: true,
     updatedAt: serverTimestamp(),
   });
@@ -191,18 +182,16 @@ export async function completeWorkout(
 /** Copy a workout from one date to multiple target dates */
 export async function copyWorkout(
   athleteId: string,
-  sourceDate: string,
-  targetDates: string[]
+  targetDates: string[],
+  exercises: WorkoutExercise[],
+  workoutNotes: string
 ): Promise<void> {
-  const source = await getWorkout(athleteId, sourceDate);
-  if (!source || source.isRestDay) return;
-
-  const cleanExercises: WorkoutExercise[] = source.exercises.map(ex => ({
-    name: ex.name,
-    sets: ex.sets,
-    reps: ex.reps,
-    weight: ex.weight,
-    notes: ex.notes,
+  const cleanExercises: WorkoutExercise[] = exercises.map(ex => ({
+    name: ex.name || '',
+    sets: ex.sets || '',
+    reps: ex.reps || '',
+    weight: ex.weight || '',
+    notes: ex.notes || '',
     videoUrl: ex.videoUrl || '',
     completed: false,
     supersetWithPrev: ex.supersetWithPrev || false,
@@ -213,7 +202,7 @@ export async function copyWorkout(
       setDoc(workoutDocRef(athleteId, date), {
         date,
         exercises: cleanExercises,
-        workoutNotes: source.workoutNotes || '',
+        workoutNotes: workoutNotes || '',
         isRestDay: false,
         completed: false,
         createdAt: serverTimestamp(),

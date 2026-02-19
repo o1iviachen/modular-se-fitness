@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -19,6 +20,8 @@ export function AthleteNotificationSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState(defaultSettings);
   const [loaded, setLoaded] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const loadedSettingsRef = useRef(JSON.stringify(defaultSettings));
 
   useEffect(() => {
     if (!user?.id) return;
@@ -26,12 +29,24 @@ export function AthleteNotificationSettings() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.notificationSettings) {
-          setSettings({ ...defaultSettings, ...data.notificationSettings });
+          const merged = { ...defaultSettings, ...data.notificationSettings };
+          setSettings(merged);
+          loadedSettingsRef.current = JSON.stringify(merged);
         }
       }
       setLoaded(true);
     });
   }, [user?.id]);
+
+  const hasChanges = () => JSON.stringify(settings) !== loadedSettingsRef.current;
+
+  const handleBack = () => {
+    if (hasChanges()) {
+      setShowUnsavedModal(true);
+      return;
+    }
+    navigate(-1);
+  };
 
   const handleToggle = (field: keyof typeof settings) => {
     setSettings({ ...settings, [field]: !settings[field] });
@@ -63,7 +78,7 @@ export function AthleteNotificationSettings() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="bg-black text-white px-6 py-8">
-        <button onClick={() => navigate(-1)} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
+        <button onClick={handleBack} className="text-white mb-4 hover:text-[#FFD000] transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
@@ -138,16 +153,27 @@ export function AthleteNotificationSettings() {
             onClick={handleSave}
             className="flex-1 bg-[#FFD000] text-black rounded-xl py-3 hover:bg-[#FFD000]/90 transition-colors font-medium"
           >
-            Save Changes
+            Save
           </button>
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="flex-1 bg-white border border-gray-300 text-black rounded-xl py-3 hover:bg-gray-50 transition-colors font-medium"
           >
             Cancel
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave?"
+        confirmText="Discard"
+        cancelText="Stay"
+        variant="danger"
+        onConfirm={() => navigate(-1)}
+        onCancel={() => setShowUnsavedModal(false)}
+      />
     </div>
   );
 }

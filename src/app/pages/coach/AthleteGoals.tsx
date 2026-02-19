@@ -136,7 +136,7 @@ export function AthleteGoals() {
                 onSave={handleSaveEdit}
                 onCancel={handleCancelEdit}
                 title="Edit Goal"
-                saveLabel="Save Changes"
+                saveLabel="Save"
               />
             ) : (
               <div

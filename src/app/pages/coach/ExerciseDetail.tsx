@@ -82,7 +82,7 @@ export function ExerciseDetail() {
       {/* Video Section */}
       {exercise.videoUrl && (
         <div className="px-6 mt-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="w-3/4 max-w-md mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="aspect-video bg-black relative">
               <iframe
                 src={toEmbedUrl(exercise.videoUrl!)}

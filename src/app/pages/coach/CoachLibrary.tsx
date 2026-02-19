@@ -99,7 +99,16 @@ export function CoachLibrary() {
     <div className="min-h-full bg-gray-50 pb-6">
       {/* Header */}
       <div className="bg-black text-white px-6 py-8">
-        <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto mb-3" />
+        <div className="flex items-center justify-between mb-3">
+          <img src="/se-logo.png" alt="SE Fitness" className="h-10 w-auto" />
+          <button
+            onClick={() => navigate('/coach/create-exercise')}
+            className="w-10 h-10 rounded-full bg-[#FFD000] flex items-center justify-center hover:bg-[#FFD000]/90 transition-colors"
+            title="Create Custom Exercise"
+          >
+            <Plus className="w-5 h-5 text-black" />
+          </button>
+        </div>
         <h1 className="text-xl mb-1 font-semibold">Exercise Library</h1>
         <p className="text-gray-400 text-sm">Browse and assign exercises to athletes</p>
       </div>
@@ -224,14 +233,6 @@ export function CoachLibrary() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Create Custom Exercise Button */}
-      <div className="px-6 mt-6">
-        <button className="w-full bg-black text-white rounded-xl p-4 flex items-center justify-center gap-3 hover:bg-black/90 transition-colors shadow-sm" onClick={() => navigate('/coach/create-exercise')}>
-          <Plus className="w-5 h-5" />
-          <span>Create Custom Exercise</span>
-        </button>
       </div>
 
       {/* Assign Exercise Modal */}
