@@ -16,10 +16,10 @@ import { db } from '../../lib/firebase';
 interface Exercise {
   id: number;
   name: string;
-  sets: string;
-  reps: string;
-  weight: string;
-  notes: string;
+  sets?: string;
+  reps?: string;
+  weight?: string;
+  notes?: string;
   videoUrl?: string;
   supersetWithPrev: boolean;
   completed?: boolean;
