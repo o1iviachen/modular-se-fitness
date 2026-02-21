@@ -1,5 +1,5 @@
 import {
-  doc, setDoc, getDoc, updateDoc, deleteDoc,
+  doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
   collection, query, where, orderBy, onSnapshot,
   serverTimestamp, Timestamp
 } from 'firebase/firestore';
@@ -210,6 +210,64 @@ export async function copyWorkout(
       })
     )
   );
+}
+
+/** Copy a workout to one or more athletes and dates */
+export async function copyWorkoutToAthletes(
+  athleteIds: string[],
+  targetDates: string[],
+  exercises: WorkoutExercise[],
+  workoutNotes: string
+): Promise<void> {
+  const cleanExercises: WorkoutExercise[] = exercises.map(ex => ({
+    name: ex.name || '',
+    sets: ex.sets || '',
+    reps: ex.reps || '',
+    weight: ex.weight || '',
+    notes: ex.notes || '',
+    videoUrl: ex.videoUrl || '',
+    completed: false,
+    supersetWithPrev: ex.supersetWithPrev || false,
+  }));
+
+  const writes = athleteIds.flatMap(athleteId =>
+    targetDates.map(date =>
+      setDoc(workoutDocRef(athleteId, date), {
+        date,
+        exercises: cleanExercises,
+        workoutNotes: workoutNotes || '',
+        isRestDay: false,
+        completed: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+    )
+  );
+
+  await Promise.all(writes);
+}
+
+/** Fetch all non-archived athletes for a coach */
+export async function getCoachAthletes(
+  coachId: string
+): Promise<{ id: string; name: string; photoUrl?: string }[]> {
+  const q = query(
+    collection(db, 'users'),
+    where('coachId', '==', coachId),
+    where('role', '==', 'athlete')
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => {
+      const data = d.data();
+      if (data.isArchived) return null;
+      return {
+        id: d.id,
+        name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+        photoUrl: data.photoUrl,
+      };
+    })
+    .filter(Boolean) as { id: string; name: string; photoUrl?: string }[];
 }
 
 // ---- Read Operations ----

@@ -5,7 +5,7 @@ import { WorkoutComments } from '../../components/WorkoutComments';
 import { CopyWorkoutModal } from '../../components/CopyWorkoutModal';
 
 import { ExerciseSearchInput } from '../../components/ExerciseSearchInput';
-import { saveWorkout, getWorkout, copyWorkout, deleteWorkout, WorkoutExercise, type ResultMedia } from '../../lib/workoutService';
+import { saveWorkout, getWorkout, deleteWorkout, WorkoutExercise, type ResultMedia } from '../../lib/workoutService';
 import { isoToDisplayDate, getExerciseLabels } from '../../utils/helpers';
 import { exerciseLibrary, LibraryExercise } from '../../data/exerciseLibrary';
 import { useAuth } from '../../context/AuthContext';
@@ -64,7 +64,6 @@ export function WorkoutDetail() {
   const [saving, setSaving] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
-  const [copying, setCopying] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customExercises, setCustomExercises] = useState<LibraryExercise[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -220,18 +219,6 @@ export function WorkoutDetail() {
       console.error('Failed to save workout:', err);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleCopy = async (targetDates: string[]) => {
-    setCopying(true);
-    try {
-      await copyWorkout(athleteId, targetDates, exercises, workoutNotes);
-      setShowCopyModal(false);
-    } catch (err) {
-      console.error('Failed to copy workout:', err);
-    } finally {
-      setCopying(false);
     }
   };
 
@@ -528,9 +515,11 @@ export function WorkoutDetail() {
       <CopyWorkoutModal
         isOpen={showCopyModal}
         sourceDate={workoutDate}
-        onCopy={handleCopy}
+        athleteId={athleteId}
+        coachId={user?.id || ''}
+        exercises={exercises}
+        workoutNotes={workoutNotes}
         onClose={() => setShowCopyModal(false)}
-        copying={copying}
       />
 
       {/* Delete Workout Confirm Modal */}
