@@ -12,6 +12,18 @@ interface ChatMessage {
   text: string;
   sender: 'me' | 'other';
   timestamp: string;
+  dateKey: string;
+}
+
+function formatDateHeader(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 export function Messages() {
@@ -78,6 +90,9 @@ export function Messages() {
           sender: data.senderId === user.id ? 'me' : 'other',
           timestamp: ts
             ? ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : '',
+          dateKey: ts
+            ? `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}`
             : '',
         } as ChatMessage;
       });
@@ -167,29 +182,38 @@ export function Messages() {
                 No messages yet. Say hello!
               </div>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                      msg.sender === 'me'
-                        ? 'bg-[#FFD000] text-black'
-                        : 'bg-white text-black border border-gray-200'
-                    }`}
-                  >
-                    <p>{msg.text}</p>
-                    <p
-                      className={`text-sm mt-1 ${
-                        msg.sender === 'me' ? 'text-black/60' : 'text-gray-500'
-                      }`}
-                    >
-                      {msg.timestamp}
-                    </p>
+              messages.map((msg, idx) => {
+                const showDateHeader = idx === 0 || msg.dateKey !== messages[idx - 1].dateKey;
+                return (
+                  <div key={msg.id}>
+                    {showDateHeader && msg.dateKey && (
+                      <div className="text-center my-4">
+                        <span className="text-xs text-gray-400">
+                          {formatDateHeader(msg.dateKey)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                          msg.sender === 'me'
+                            ? 'bg-[#FFD000] text-black'
+                            : 'bg-white text-black border border-gray-200'
+                        }`}
+                      >
+                        <p>{msg.text}</p>
+                        <p
+                          className={`text-sm mt-1 ${
+                            msg.sender === 'me' ? 'text-black/60' : 'text-gray-500'
+                          }`}
+                        >
+                          {msg.timestamp}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>

@@ -13,6 +13,18 @@ interface Comment {
   senderName: string;
   senderRole: 'athlete' | 'coach';
   timestamp: string;
+  dateKey: string;
+}
+
+function formatDateHeader(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 interface WorkoutCommentsProps {
@@ -51,6 +63,9 @@ export function WorkoutComments({ athleteId, workoutDate, displayDate, onClose }
           senderRole: data.senderRole,
           timestamp: ts
             ? ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : '',
+          dateKey: ts
+            ? `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}`
             : '',
         } as Comment;
       });
@@ -178,28 +193,35 @@ export function WorkoutComments({ athleteId, workoutDate, displayDate, onClose }
             </div>
           ) : (
             <div className="space-y-4 pb-4">
-              {comments.map((comment) => {
+              {comments.map((comment, idx) => {
                 const isMe = comment.senderId === user?.id;
+                const showDateHeader = idx === 0 || comment.dateKey !== comments[idx - 1].dateKey;
                 return (
-                  <div
-                    key={comment.id}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                        isMe
-                          ? 'bg-[#FFD000] text-black'
-                          : 'bg-white text-black border border-gray-200'
-                      }`}
-                    >
-                      {!isMe && (
-                        <div className="text-xs font-medium text-gray-500 mb-1">
-                          {comment.senderName}
+                  <div key={comment.id}>
+                    {showDateHeader && comment.dateKey && (
+                      <div className="text-center my-4">
+                        <span className="text-xs text-gray-400">
+                          {formatDateHeader(comment.dateKey)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                          isMe
+                            ? 'bg-[#FFD000] text-black'
+                            : 'bg-white text-black border border-gray-200'
+                        }`}
+                      >
+                        {!isMe && (
+                          <div className="text-xs font-medium text-gray-500 mb-1">
+                            {comment.senderName}
+                          </div>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap break-words">{comment.text}</p>
+                        <div className={`text-xs mt-1 ${isMe ? 'text-black/50' : 'text-gray-400'}`}>
+                          {comment.timestamp}
                         </div>
-                      )}
-                      <p className="text-sm whitespace-pre-wrap break-words">{comment.text}</p>
-                      <div className={`text-xs mt-1 ${isMe ? 'text-black/50' : 'text-gray-400'}`}>
-                        {comment.timestamp}
                       </div>
                     </div>
                   </div>
