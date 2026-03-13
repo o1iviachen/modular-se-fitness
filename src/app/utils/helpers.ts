@@ -130,30 +130,23 @@ export const getExerciseLabels = (exercises: Array<{ supersetWithPrev?: boolean 
   return labels;
 };
 
-// Generate current week dates (7 days starting from Monday of current week)
+// Generate dates for 1 week before and 1 week after today (15 days total)
 // Returns ISO date strings as the canonical format
 export const getCurrentWeekDates = (): Array<{ date: string; day: string; dateObj: Date }> => {
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  // Calculate Monday of this week (if today is Sunday, go back 6 days, otherwise go back to Monday)
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysToMonday);
+  const days = [];
+  for (let i = -7; i <= 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
 
-  const week = [];
-  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-
-    week.push({
+    days.push({
       date: toISODateString(date),
-      day: dayNames[i],
+      day: dayNames[date.getDay()],
       dateObj: date
     });
   }
 
-  return week;
+  return days;
 };

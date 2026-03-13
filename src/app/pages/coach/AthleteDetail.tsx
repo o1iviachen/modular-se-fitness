@@ -144,7 +144,7 @@ export function AthleteDetail() {
 
     const weekDates = getCurrentWeekDates();
     const startDate = weekDates[0].date;
-    const endDate = weekDates[6].date;
+    const endDate = weekDates[weekDates.length - 1].date;
 
     const unsubscribe = subscribeToWorkoutsInRange(
       athleteId,
@@ -282,7 +282,7 @@ export function AthleteDetail() {
       {/* Weekly Schedule */}
       <div className="px-6 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">This Week's Schedule</h3>
+          <h3 className="text-lg font-semibold">Schedule</h3>
           <button
             onClick={() => navigate(`/coach/athlete/${athleteId}/workouts`, { state: { athleteName: athlete.name, isArchived: athlete.isArchived } })}
             className="text-[#FFD000] hover:underline"
