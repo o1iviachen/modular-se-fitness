@@ -11,7 +11,7 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, googleProvider, db } from '../lib/firebase';
+import { auth, googleProvider, appleProvider, db } from '../lib/firebase';
 
 const PENDING_SIGNUP_KEY = 'pending_athlete_signup';
 
@@ -27,7 +27,7 @@ interface User {
 }
 
 interface PendingAthleteSignup {
-  authMethod: 'email' | 'google';
+  authMethod: 'email' | 'google' | 'apple';
   email: string;
   password?: string;
   firstName: string;
@@ -39,11 +39,14 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   signup: (email: string, password: string, firstName: string, lastName: string, role: 'athlete' | 'coach') => Promise<void>;
   signupWithGoogle: (role: 'athlete' | 'coach', firstName: string, lastName: string) => Promise<void>;
+  signupWithApple: (role: 'athlete' | 'coach', firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
   deleteAccount: (password?: string) => Promise<void>;
   isGoogleUser: boolean;
+  isAppleUser: boolean;
   connectCoach: (coachCode: string) => Promise<void>;
   completeAthleteSignup: (coachCode: string) => Promise<void>;
   updateUserPhoto: (photoUrl: string) => void;
@@ -120,6 +123,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profile);
   };
 
+  const loginWithApple = async () => {
+    const credential = await signInWithPopup(auth, appleProvider);
+    const profile = await fetchUserProfile(credential.user.uid);
+    if (!profile) {
+      await signOut(auth);
+      throw new Error('No account found. Please sign up first.');
+    }
+    setUser(profile);
+  };
+
   const signup = async (email: string, password: string, firstName: string, lastName: string, role: 'athlete' | 'coach') => {
     if (role === 'athlete') {
       // Defer account creation — store form data for the coach-code step
@@ -173,6 +186,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ id: uid, email, firstName, lastName, role, coachCode });
   };
 
+  const signupWithApple = async (role: 'athlete' | 'coach', firstName: string, lastName: string) => {
+    const credential = await signInWithPopup(auth, appleProvider);
+    const uid = credential.user.uid;
+    const email = credential.user.email!;
+
+    if (role === 'athlete') {
+      const pending: PendingAthleteSignup = { authMethod: 'apple', email, firstName, lastName, uid };
+      sessionStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify(pending));
+      return;
+    }
+
+    const coachCode = generateCoachCode();
+    await setDoc(doc(db, 'users', uid), {
+      email,
+      firstName,
+      lastName,
+      role,
+      coachCode,
+      createdAt: serverTimestamp(),
+    });
+    await setDoc(doc(db, 'coachCodes', coachCode), { coachId: uid });
+
+    setUser({ id: uid, email, firstName, lastName, role, coachCode });
+  };
+
   const completeAthleteSignup = async (coachCode: string) => {
     // Validate coach code first
     const codeSnap = await getDoc(doc(db, 'coachCodes', coachCode));
@@ -192,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       uid = credential.user.uid;
       email = pending.email;
     } else {
-      // Google auth user already exists
+      // Google/Apple auth user already exists
       uid = pending.uid || auth.currentUser?.uid!;
       email = pending.email;
     }
@@ -252,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isGoogleUser = !!auth.currentUser?.providerData.some(p => p.providerId === 'google.com');
+  const isAppleUser = !!auth.currentUser?.providerData.some(p => p.providerId === 'apple.com');
 
   const deleteAccount = async (password?: string) => {
     const firebaseUser = auth.currentUser;
@@ -260,8 +299,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Reauthenticate first
     const isGoogle = firebaseUser.providerData.some(p => p.providerId === 'google.com');
+    const isApple = firebaseUser.providerData.some(p => p.providerId === 'apple.com');
     if (isGoogle) {
       await reauthenticateWithPopup(firebaseUser, googleProvider);
+    } else if (isApple) {
+      await reauthenticateWithPopup(firebaseUser, appleProvider);
     } else if (password && firebaseUser.email) {
       const credential = EmailAuthProvider.credential(firebaseUser.email, password);
       await reauthenticateWithCredential(firebaseUser, credential);
@@ -311,7 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, signup, signupWithGoogle, logout, deleteAccount, isGoogleUser, connectCoach, completeAthleteSignup, updateUserPhoto, updateUserProfile, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, loginWithApple, signup, signupWithGoogle, signupWithApple, logout, deleteAccount, isGoogleUser, isAppleUser, connectCoach, completeAthleteSignup, updateUserPhoto, updateUserProfile, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

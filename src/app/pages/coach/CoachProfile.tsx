@@ -11,7 +11,8 @@ import { db, storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export function CoachProfile() {
-  const { user, logout, deleteAccount, isGoogleUser, updateUserPhoto } = useAuth();
+  const { user, logout, deleteAccount, isGoogleUser, isAppleUser, updateUserPhoto } = useAuth();
+  const isOAuthUser = isGoogleUser || isAppleUser;
   const [codeCopied, setCodeCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
@@ -46,14 +47,14 @@ export function CoachProfile() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!isGoogleUser && !deletePassword) return;
+    if (!isOAuthUser && !deletePassword) return;
     setDeleting(true);
     setDeleteError('');
     try {
-      await deleteAccount(isGoogleUser ? undefined : deletePassword);
+      await deleteAccount(isOAuthUser ? undefined : deletePassword);
       navigate('/login');
     } catch {
-      setDeleteError(isGoogleUser ? 'Failed to delete account.' : 'Incorrect password or failed to delete account.');
+      setDeleteError(isOAuthUser ? 'Failed to delete account.' : 'Incorrect password or failed to delete account.');
       setDeleting(false);
     }
   };
@@ -308,11 +309,11 @@ export function CoachProfile() {
                 </button>
               </div>
               <p className="text-gray-600 mb-4">
-                {isGoogleUser
-                  ? 'This will permanently delete your account and all data. You will be asked to sign in with Google to confirm.'
+                {isOAuthUser
+                  ? 'This will permanently delete your account and all data. You will be asked to re-authenticate to confirm.'
                   : 'This will permanently delete your account and all data. Enter your password to confirm.'}
               </p>
-              {!isGoogleUser && (
+              {!isOAuthUser && (
                 <input
                   type="password"
                   placeholder="Enter your password"
@@ -332,7 +333,7 @@ export function CoachProfile() {
                 </button>
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={deleting || (!isGoogleUser && !deletePassword)}
+                  disabled={deleting || (!isOAuthUser && !deletePassword)}
                   className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
                   {deleting ? 'Deleting...' : 'Delete'}
