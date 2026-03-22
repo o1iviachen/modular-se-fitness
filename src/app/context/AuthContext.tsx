@@ -273,6 +273,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       coachId,
       athleteName: `${pending.firstName} ${pending.lastName}`,
       coachName,
+      athletePhotoUrl: '',
+      coachPhotoUrl: coachProfile?.photoUrl || '',
       lastMessage: '',
       lastMessageAt: serverTimestamp(),
       createdAt: serverTimestamp(),

@@ -88,6 +88,16 @@ export const getNextMonth = (date: Date): Date => {
   return newDate;
 };
 
+// Get start and end ISO date strings for a given month
+export const getMonthBounds = (date: Date): { start: string; end: string } => {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const start = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const end = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  return { start, end };
+};
+
 // Filter workouts by month (works with ISO date strings)
 export const filterWorkoutsByMonth = (workouts: any[], targetMonth: Date): any[] => {
   const targetYear = targetMonth.getFullYear();

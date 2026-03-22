@@ -2,11 +2,11 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, filterWorkoutsByMonth, isoToDisplayDate, isoToDayName, getTodayISO } from '../../utils/helpers';
+import { formatMonthYear, isSameMonth, getPreviousMonth, getNextMonth, getMonthBounds, isoToDisplayDate, isoToDayName, getTodayISO } from '../../utils/helpers';
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { subscribeToAllWorkouts, setRestDay as firestoreSetRestDay, WorkoutDoc } from '../../lib/workoutService';
+import { subscribeToWorkoutsInRange, setRestDay as firestoreSetRestDay, WorkoutDoc } from '../../lib/workoutService';
 
 interface DisplayWorkout {
   date: string;       // ISO format
@@ -46,12 +46,13 @@ export function AthleteWorkouts() {
     fetchAthlete();
   }, [athleteId, routeState]);
 
-  // Subscribe to all workouts from Firestore in real-time
+  // Subscribe to workouts for the selected month
   useEffect(() => {
     if (!athleteId) return;
+    const { start, end } = getMonthBounds(selectedMonth);
 
-    const unsubscribe = subscribeToAllWorkouts(athleteId, (workoutDocs) => {
-      const display: DisplayWorkout[] = workoutDocs.map((w) => ({
+    return subscribeToWorkoutsInRange(athleteId, start, end, (workouts) => {
+      const display: DisplayWorkout[] = Array.from(workouts.values()).map((w) => ({
         date: w.date,
         day: isoToDayName(w.date),
         workout: w.isRestDay ? 'Rest day' : (w.exercises.length > 0 ? 'Workout' : null),
@@ -61,11 +62,9 @@ export function AthleteWorkouts() {
       }));
       setAllWorkouts(display);
     });
+  }, [athleteId, selectedMonth]);
 
-    return unsubscribe;
-  }, [athleteId]);
-
-  const workoutsInMonth = filterWorkoutsByMonth(allWorkouts, selectedMonth);
+  const workoutsInMonth = allWorkouts;
   const isCurrentMonth = isSameMonth(selectedMonth, currentMonth);
 
   const goToPreviousMonth = () => setSelectedMonth(getPreviousMonth(selectedMonth));

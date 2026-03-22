@@ -45,6 +45,37 @@ const workoutDocRef = (athleteId: string, dateString: string) =>
 const workoutsCollectionRef = (athleteId: string) =>
   collection(db, 'users', athleteId, 'workouts');
 
+// ---- Stats Helpers ----
+
+/** Recompute and persist athlete stats (totalWorkouts, completedWorkouts, completionRate, currentStreak) */
+export async function updateAthleteStats(athleteId: string): Promise<void> {
+  const today = new Date().toISOString().split('T')[0];
+  const q = query(
+    workoutsCollectionRef(athleteId),
+    where('date', '<=', today),
+    orderBy('date', 'desc')
+  );
+  const snap = await getDocs(q);
+  const workouts = snap.docs.map(d => d.data()).filter(w => !w.isRestDay);
+
+  const totalWorkouts = workouts.length;
+  const completedWorkouts = workouts.filter(w => w.completed).length;
+  const completionRate = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
+
+  let currentStreak = 0;
+  for (const w of workouts) {
+    if (w.completed) currentStreak++;
+    else break;
+  }
+
+  await updateDoc(doc(db, 'users', athleteId), {
+    totalWorkouts,
+    completedWorkouts,
+    completionRate,
+    currentStreak,
+  });
+}
+
 // ---- Write Operations ----
 
 /** Save or update a workout (used by coach when saving from WorkoutDetail) */
@@ -75,6 +106,7 @@ export async function saveWorkout(
       updatedAt: serverTimestamp(),
     });
   }
+  updateAthleteStats(athleteId).catch(() => {});
 }
 
 /** Delete a workout */
@@ -83,6 +115,7 @@ export async function deleteWorkout(
   dateString: string
 ): Promise<void> {
   await deleteDoc(workoutDocRef(athleteId, dateString));
+  updateAthleteStats(athleteId).catch(() => {});
 }
 
 /** Set or unset a rest day */
@@ -110,6 +143,7 @@ export async function setRestDay(
       updatedAt: serverTimestamp(),
     });
   }
+  updateAthleteStats(athleteId).catch(() => {});
 }
 
 /** Update a single field on one exercise within a workout */
@@ -177,6 +211,7 @@ export async function completeWorkout(
     completed: true,
     updatedAt: serverTimestamp(),
   });
+  updateAthleteStats(athleteId).catch(() => {});
 }
 
 /** Copy a workout from one date to multiple target dates */

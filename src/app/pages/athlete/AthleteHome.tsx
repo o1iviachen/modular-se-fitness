@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { usePageState } from '../../hooks/usePageState';
 
-import { subscribeToAllWorkouts } from '../../lib/workoutService';
-import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, filterWorkoutsByMonth, getExerciseLabels } from '../../utils/helpers';
+import { subscribeToWorkoutsInRange } from '../../lib/workoutService';
+import { isoToDisplayDate, isoToDayName, getTodayISO, parseISODate, formatMonthYear, getPreviousMonth, getNextMonth, isSameMonth, getMonthBounds, getExerciseLabels } from '../../utils/helpers';
 
 // Helper to get time-based greeting
 const getGreeting = () => {
@@ -56,7 +56,9 @@ export function AthleteHome() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = usePageState<'upcoming' | 'past'>('athlete-home-tab', 'upcoming');
   const [selectedMonthString, setSelectedMonthString] = usePageState('athlete-home-month', getTodayISO());
-  const [allWorkouts, setAllWorkouts] = useState<DisplayWorkout[]>([]);
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<DisplayWorkout[]>([]);
+  const [pastWorkouts, setPastWorkouts] = useState<DisplayWorkout[]>([]);
+  const [todayWorkout, setTodayWorkout] = useState<DisplayWorkout | undefined>();
 
   // Convert string back to Date
   const selectedMonth = new Date(selectedMonthString);
@@ -64,33 +66,42 @@ export function AthleteHome() {
 
   const todayISO = getTodayISO();
   const currentMonth = parseISODate(todayISO);
-
-  // Subscribe to all workouts from Firestore
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const unsubscribe = subscribeToAllWorkouts(user.id, (workoutDocs) => {
-      const display: DisplayWorkout[] = workoutDocs.map((w) => ({
-        date: w.date,
-        day: w.date === todayISO ? 'Today' : isoToDayName(w.date),
-        isRestDay: w.isRestDay,
-        completed: w.completed,
-        exercises: w.exercises.map(ex => ({ name: ex.name, sets: ex.sets, supersetWithPrev: ex.supersetWithPrev })),
-      }));
-      setAllWorkouts(display);
-    });
-
-    return unsubscribe;
-  }, [user?.id]);
-
   const isCurrentMonth = isSameMonth(selectedMonth, currentMonth);
 
-  // Filter workouts
-  const todayWorkout = allWorkouts.find(w => w.date === todayISO);
-  const workoutsInSelectedMonth = filterWorkoutsByMonth(allWorkouts, selectedMonth);
+  // Helper to convert WorkoutDoc map to DisplayWorkout array
+  const mapToDisplay = (workouts: Map<string, any>): DisplayWorkout[] =>
+    Array.from(workouts.values()).map((w) => ({
+      date: w.date,
+      day: w.date === todayISO ? 'Today' : isoToDayName(w.date),
+      isRestDay: w.isRestDay,
+      completed: w.completed,
+      exercises: w.exercises.map((ex: any) => ({ name: ex.name, sets: ex.sets, supersetWithPrev: ex.supersetWithPrev })),
+    }));
 
-  const upcomingWorkouts = allWorkouts.filter(w => w.date > todayISO).reverse();
-  const pastWorkouts = workoutsInSelectedMonth.filter(w => w.date < todayISO);
+  // Subscribe to upcoming workouts (today + future, up to 6 months)
+  useEffect(() => {
+    if (!user?.id) return;
+    const sixMonthsOut = new Date();
+    sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6);
+    const endDate = sixMonthsOut.toISOString().split('T')[0];
+
+    return subscribeToWorkoutsInRange(user.id, todayISO, endDate, (workouts) => {
+      const display = mapToDisplay(workouts);
+      setTodayWorkout(display.find(w => w.date === todayISO));
+      setUpcomingWorkouts(display.filter(w => w.date > todayISO));
+    });
+  }, [user?.id]);
+
+  // Subscribe to past workouts for selected month
+  useEffect(() => {
+    if (!user?.id || activeTab !== 'past') return;
+    const { start, end } = getMonthBounds(selectedMonth);
+
+    return subscribeToWorkoutsInRange(user.id, start, end, (workouts) => {
+      const display = mapToDisplay(workouts);
+      setPastWorkouts(display.filter(w => w.date < todayISO));
+    });
+  }, [user?.id, activeTab, selectedMonthString]);
 
   const displayWorkouts = activeTab === 'upcoming' ? upcomingWorkouts : pastWorkouts;
 

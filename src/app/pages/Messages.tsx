@@ -48,32 +48,34 @@ export function Messages() {
       const data = snap.data();
       const isCoach = user.role === 'coach';
       const name = isCoach ? data.athleteName : data.coachName;
-      const otherId = isCoach ? data.athleteId : data.coachId;
       const initials = name
         ? name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
         : '?';
-
-      // Fetch other person's photoUrl
-      let photoUrl: string | undefined;
-      if (otherId) {
-        try {
-          const userSnap = await getDoc(doc(db, 'users', otherId));
-          if (userSnap.exists()) photoUrl = userSnap.data().photoUrl || undefined;
-        } catch {}
-      }
+      const photoUrl = isCoach ? data.athletePhotoUrl : data.coachPhotoUrl;
 
       setConvoData({
         name,
         avatar: initials,
         role: isCoach ? 'Athlete' : 'Coach',
-        photoUrl,
+        photoUrl: photoUrl || undefined,
       });
       setLoading(false);
     };
     fetchConvo();
   }, [chatId, user]);
 
-  // Listen to messages in real-time and mark as read
+  // Mark conversation as read (called on mount, unmount, and tab blur)
+  const markAsRead = useRef(() => {});
+  useEffect(() => {
+    markAsRead.current = () => {
+      if (!chatId || !user) return;
+      updateDoc(doc(db, 'conversations', chatId), {
+        [`lastReadBy.${user.id}`]: serverTimestamp(),
+      }).catch(() => {});
+    };
+  }, [chatId, user]);
+
+  // Listen to messages in real-time
   useEffect(() => {
     if (!chatId || !user) return;
     const q = query(
@@ -97,13 +99,22 @@ export function Messages() {
         } as ChatMessage;
       });
       setMessages(msgs);
-
-      // Mark conversation as read
-      updateDoc(doc(db, 'conversations', chatId), {
-        [`lastReadBy.${user.id}`]: serverTimestamp(),
-      }).catch(() => {});
     });
     return unsubscribe;
+  }, [chatId, user]);
+
+  // Mark as read on mount, unmount, and tab visibility change
+  useEffect(() => {
+    if (!chatId || !user) return;
+    markAsRead.current();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') markAsRead.current();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      markAsRead.current();
+    };
   }, [chatId, user]);
 
   const handleSend = async () => {
@@ -121,6 +132,7 @@ export function Messages() {
     await updateDoc(doc(db, 'conversations', chatId), {
       lastMessage: text,
       lastMessageAt: serverTimestamp(),
+      [`lastReadBy.${user.id}`]: serverTimestamp(),
     });
   };
 

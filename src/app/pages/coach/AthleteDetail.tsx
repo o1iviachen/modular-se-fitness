@@ -1,13 +1,13 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { WorkoutCard } from '../../components/WorkoutCard';
 import { PageCard } from '../../components/ui/page-card';
 import { getCurrentWeekDates, isoToDisplayDate, getTodayISO } from '../../utils/helpers';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { subscribeToWorkoutsInRange, subscribeToAllWorkouts, setRestDay as firestoreSetRestDay, WorkoutDoc } from '../../lib/workoutService';
+import { subscribeToWorkoutsInRange, setRestDay as firestoreSetRestDay, WorkoutDoc } from '../../lib/workoutService';
 
 interface AthleteProfile {
   id: string;
@@ -57,56 +57,23 @@ export function AthleteDetail() {
     }));
   });
 
-  // Stats computed from real workout data
-  const [stats, setStats] = useState({ workoutsCompleted: 0, workoutCompletionRate: 0, streak: 0, lastWorkoutDate: '' });
-  const prevStatsRef = useRef('');
+  // Stats from user doc (maintained by updateAthleteStats)
+  const [stats, setStats] = useState({ workoutsCompleted: 0, workoutCompletionRate: 0, streak: 0 });
 
-  // Subscribe to ALL workouts to compute stats
+  // Subscribe to athlete user doc for real-time stats
   useEffect(() => {
     if (!athleteId) return;
-    return subscribeToAllWorkouts(athleteId, (workouts: WorkoutDoc[]) => {
-      const todayISO = getTodayISO();
-      // Only count non-rest-day workouts that are on or before today
-      const pastWorkouts = workouts.filter(w => w.date <= todayISO && !w.isRestDay);
-      const completedCount = pastWorkouts.filter(w => w.completed).length;
-      const totalCount = pastWorkouts.length;
-      const rate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-      // Streak: consecutive completed workouts going backward from most recent
-      // Only counts assigned workout days (ignores calendar gaps and rest days)
-      const pastAssigned = workouts
-        .filter(w => w.date <= todayISO && !w.isRestDay)
-        .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
-      let streak = 0;
-      for (const w of pastAssigned) {
-        if (w.completed) streak++;
-        else break;
+    return onSnapshot(doc(db, 'users', athleteId), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setStats({
+          workoutsCompleted: data.completedWorkouts ?? 0,
+          workoutCompletionRate: data.completionRate ?? 0,
+          streak: data.currentStreak ?? 0,
+        });
       }
-
-      // Last workout date: most recent completed non-rest-day workout
-      const lastCompleted = pastAssigned.find(w => w.completed);
-      const lastWorkoutDate = lastCompleted?.date ?? '';
-
-      setStats({ workoutsCompleted: completedCount, workoutCompletionRate: rate, streak, lastWorkoutDate });
     });
   }, [athleteId]);
-
-  // Persist computed stats to user profile so CoachHome stays accurate
-  useEffect(() => {
-    if (!athleteId) return;
-    const key = JSON.stringify(stats);
-    if (key === prevStatsRef.current) return;
-    prevStatsRef.current = key;
-    const updates: Record<string, any> = {
-      workoutsCompleted: stats.workoutsCompleted,
-      workoutCompletionRate: stats.workoutCompletionRate,
-      streak: stats.streak,
-    };
-    if (stats.lastWorkoutDate) {
-      updates.lastWorkoutDate = Timestamp.fromDate(new Date(stats.lastWorkoutDate + 'T12:00:00'));
-    }
-    updateDoc(doc(db, 'users', athleteId), updates).catch(() => {});
-  }, [athleteId, stats]);
 
   // Fetch athlete profile
   useEffect(() => {

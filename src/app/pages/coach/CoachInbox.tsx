@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Search, ChevronRight } from 'lucide-react';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 
@@ -27,7 +27,7 @@ export function CoachInbox() {
     if (!user) return;
     const q = query(collection(db, 'conversations'), where('coachId', '==', user.id));
     const unsubscribe = onSnapshot(q, async (snap) => {
-      const convos = snap.docs.map((d) => {
+      const activeConvos: Conversation[] = snap.docs.map((d) => {
         const data = d.data();
         const initials = data.athleteName
           ? data.athleteName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
@@ -41,27 +41,10 @@ export function CoachInbox() {
           lastMessage: data.lastMessage || 'No messages yet',
           lastMessageAt: data.lastMessageAt,
           avatar: initials,
+          photoUrl: data.athletePhotoUrl || undefined,
           hasUnread: lastMsgAt > lastReadAt && !!data.lastMessage,
         };
       });
-
-      // Filter out deleted users and fetch photoUrls
-      const uniqueIds = [...new Set(convos.map(c => c.athleteId).filter(Boolean))];
-      const existingUserIds = new Set<string>();
-      const photoUrls = new Map<string, string>();
-      await Promise.all(uniqueIds.map(async (id) => {
-        try {
-          const userSnap = await getDoc(doc(db, 'users', id));
-          if (userSnap.exists()) {
-            existingUserIds.add(id);
-            const photoUrl = userSnap.data().photoUrl;
-            if (photoUrl) photoUrls.set(id, photoUrl);
-          }
-        } catch {}
-      }));
-      const activeConvos = convos
-        .filter(c => existingUserIds.has(c.athleteId))
-        .map(c => ({ ...c, photoUrl: photoUrls.get(c.athleteId) }));
 
       activeConvos.sort((a, b) => {
         const aTime = a.lastMessageAt?.toMillis?.() || 0;

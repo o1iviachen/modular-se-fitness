@@ -73,6 +73,9 @@ export function CoachProfile() {
       const downloadURL = await getDownloadURL(storageRef);
       await updateDoc(doc(db, 'users', user.id), { photoUrl: downloadURL });
       updateUserPhoto(downloadURL);
+      // Propagate photo to conversation docs
+      const convSnap = await getDocs(query(collection(db, 'conversations'), where('coachId', '==', user.id)));
+      await Promise.all(convSnap.docs.map(d => updateDoc(d.ref, { coachPhotoUrl: downloadURL })));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -110,25 +113,9 @@ export function CoachProfile() {
       const athletes = athleteSnap.docs;
       const activeCount = athletes.filter(d => !d.data().isArchived).length;
 
-      // Count workouts across all athletes (parallel)
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const counts = await Promise.all(
-        athletes.map(async (athleteDoc) => {
-          const workoutsSnap = await getDocs(collection(db, 'users', athleteDoc.id, 'workouts'));
-          let total = 0;
-          let thisMonth = 0;
-          for (const wDoc of workoutsSnap.docs) {
-            const data = wDoc.data();
-            if (!data.isRestDay) {
-              total++;
-              if (data.date?.startsWith(currentMonth)) thisMonth++;
-            }
-          }
-          return { total, thisMonth };
-        })
-      );
-      const totalWorkouts = counts.reduce((sum, c) => sum + c.total, 0);
-      const thisMonthWorkouts = counts.reduce((sum, c) => sum + c.thisMonth, 0);
+      // Read stats from athlete user docs (maintained by updateAthleteStats)
+      const totalWorkouts = athletes.reduce((sum, d) => sum + (d.data().totalWorkouts || 0), 0);
+      const thisMonthWorkouts = athletes.reduce((sum, d) => sum + (d.data().completedWorkouts || 0), 0);
 
       setStats([
         { label: 'Active Athletes', value: String(activeCount) },

@@ -6,11 +6,9 @@ import { ProfileHeader } from '../../components/ui/profile-header';
 import { PageCard } from '../../components/ui/page-card';
 import { SectionHeader } from '../../components/ui/section-header';
 import { ListItemButton } from '../../components/ui/list-item-button';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db, storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { subscribeToAllWorkouts, WorkoutDoc } from '../../lib/workoutService';
-import { getTodayISO } from '../../utils/helpers';
 
 export function AthleteProfile() {
   const { user, logout, deleteAccount, isGoogleUser, isAppleUser, updateUserPhoto } = useAuth();
@@ -26,10 +24,10 @@ export function AthleteProfile() {
   const [deleting, setDeleting] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Load physical info from Firestore
+  // Load physical info and stats from user doc (real-time)
   useEffect(() => {
     if (!user?.id) return;
-    getDoc(doc(db, 'users', user.id)).then((snap) => {
+    return onSnapshot(doc(db, 'users', user.id), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setProfile({
@@ -38,31 +36,12 @@ export function AthleteProfile() {
           weight: data.weight ?? undefined,
           height: data.height ?? undefined,
         });
+        setStats({
+          completed: data.completedWorkouts ?? 0,
+          streak: data.currentStreak ?? 0,
+          thisMonth: data.completedWorkouts ?? 0,
+        });
       }
-    });
-  }, [user?.id]);
-
-  // Compute stats from real workout data
-  useEffect(() => {
-    if (!user?.id) return;
-    return subscribeToAllWorkouts(user.id, (workouts: WorkoutDoc[]) => {
-      const todayISO = getTodayISO();
-      const pastWorkouts = workouts.filter(w => w.date <= todayISO && !w.isRestDay);
-      const completed = pastWorkouts.filter(w => w.completed).length;
-
-      // Streak
-      const sorted = [...pastWorkouts].sort((a, b) => b.date.localeCompare(a.date));
-      let streak = 0;
-      for (const w of sorted) {
-        if (w.completed) streak++;
-        else break;
-      }
-
-      // This month
-      const currentMonth = todayISO.slice(0, 7); // "2026-02"
-      const thisMonth = pastWorkouts.filter(w => w.date.startsWith(currentMonth) && w.completed).length;
-
-      setStats({ completed, streak, thisMonth });
     });
   }, [user?.id]);
 
@@ -102,6 +81,9 @@ export function AthleteProfile() {
       const downloadURL = await getDownloadURL(storageRef);
       await updateDoc(doc(db, 'users', user.id), { photoUrl: downloadURL });
       updateUserPhoto(downloadURL);
+      // Propagate photo to conversation docs
+      const convSnap = await getDocs(query(collection(db, 'conversations'), where('athleteId', '==', user.id)));
+      await Promise.all(convSnap.docs.map(d => updateDoc(d.ref, { athletePhotoUrl: downloadURL })));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
